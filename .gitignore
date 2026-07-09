@@ -67,3 +67,10 @@ vcpkg_installed/
 # test output & cache
 Testing/
 .cache/
+
+# PlatformIO build artifacts
+.pio/
+
+# User-local PlatformIO config — contains private credentials, never commit
+platformio_user.ini
+/sdkconfig.esp32-c6-devkitm-1
