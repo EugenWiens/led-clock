@@ -1,7 +1,7 @@
 # Plan: ESP32-C6 WS2812 LED Clock with SwitchBot
 
 ## Decisions
-- Board: esp32-c6-devkitc-1 (PlatformIO, Arduino Framework)
+- Board: esp32-c6-devkitm-1 (PlatformIO, ESP-IDF)
 - 5x 8x8 WS2812B in a single row (40x8 pixels total, 320 LEDs)
 - Display: HH:MM + alternates with temperature every N seconds
 - Time source: NTP via WiFi (configTzTime)
@@ -44,7 +44,7 @@ led_clock/
 ## Phases
 
 ### Phase 1: PlatformIO Setup
-- [x] platformio.ini: board=esp32-c6-devkitc-1, framework=esp-idf, platform=espressif32
+- [x] platformio.ini: board=esp32-c6-devkitm-1, framework=espidf, platform=espressif32
 - [x] Dependencies: FastLED
 - [x] Create project directory structure
 - [x] config.h with WiFi credentials, timezone, LED pin, LDR pin, SwitchBot MAC
