@@ -44,10 +44,10 @@ led_clock/
 ## Phases
 
 ### Phase 1: PlatformIO Setup
-- [ ] platformio.ini: board=esp32-c6-devkitc-1, framework=arduino, platform=espressif32
-- [ ] Dependencies: FastLED
-- [ ] Create project directory structure
-- [ ] config.h with WiFi credentials, timezone, LED pin, LDR pin, SwitchBot MAC
+- [x] platformio.ini: board=esp32-c6-devkitc-1, framework=esp-idf, platform=espressif32
+- [x] Dependencies: FastLED
+- [x] Create project directory structure
+- [x] config.h with WiFi credentials, timezone, LED pin, LDR pin, SwitchBot MAC
 
 ### Phase 2: LED Matrix Driver + LDR (src/display/)
 - [ ] FastLED: 320 LEDs (5x64), GPIO8
