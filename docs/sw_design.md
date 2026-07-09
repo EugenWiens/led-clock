@@ -36,7 +36,7 @@ thresholds are defined here as `#define` constants. No logic.
 Wraps FastLED. Responsibilities:
 - Initialise the LED strip (320 LEDs on GPIO 8 via RMT)
 - Map a logical `(matrixIndex, col, row)` coordinate to the physical LED index
-- Read the LDR via ADC every 500 ms, compute an 8-sample rolling average,
+- Read the LDR via ADC every 500 ms using `adc_oneshot_read()`, compute an 8-sample rolling average,
   and call `FastLED.setBrightness()`
 - Expose `clear()`, `setPixel(matrixIdx, col, row, color)`, `show()`
 
@@ -65,9 +65,9 @@ Renders content onto the matrix buffer. Calls `matrix.setPixel()`.
   falls back to `"--.-"` when `tempC == NAN`
 
 ### `src/network/ntp.h/.cpp`
-- `ntpBegin()` — connects WiFi, calls `configTzTime()`, blocks until sync
-  (max 30 s) or returns `false`
-- `ntpGetTime(struct tm &t)` — thin wrapper around `getLocalTime()`
+- `ntpBegin()` — connects WiFi, configures SNTP via `esp_sntp_*`, sets timezone
+  via `setenv("TZ", ...)` + `tzset()`, blocks until sync (max 30 s) or returns `false`
+- `ntpGetTime(struct tm &t)` — fills `t` via `localtime_r()`; returns `false` if not synced
 - `ntpMaintain()` — called from main loop; reconnects WiFi + re-syncs if lost
 
 ### `src/ble/switchbot.h/.cpp`
@@ -80,7 +80,9 @@ Renders content onto the matrix buffer. Calls `matrix.setPixel()`.
   is `false` if data is older than `BLE_STALE_THRESHOLD_S`
 
 ### `src/main.cpp`
-Initialisation sequence and main display loop.
+ESP-IDF entry point `app_main()`. Initialisation sequence followed by a FreeRTOS
+loop (`vTaskDelay(pdMS_TO_TICKS(33))`). Timing uses `ms_now()` which wraps
+`esp_timer_get_time() / 1000`.
 
 ## Display State Machine
 
@@ -96,14 +98,14 @@ Initialisation sequence and main display loop.
          │    │  renderClock(hh,mm)   │               │
          │    │  colon blinks 1 Hz    │               │
          │    └──────────┬────────────┘               │
-         │               │ every TEMP_DISPLAY_DURATION_MS  │
+         │               │ after CLOCK_DISPLAY_MS          │
          │               ▼                            │
          │    ┌───────────────────────┐               │
          │    │      SHOW_TEMP        │               │
          │    │  renderTemp(°C)       │               │
          │    │  (or "--.-" fallback) │               │
          │    └──────────┬────────────┘               │
-         │               │ after TEMP_DISPLAY_DURATION_MS  │
+         │               │ after TEMP_DISPLAY_MS       │
          └───────────────┴────────────────────────────┘
 ```
 
@@ -119,20 +121,21 @@ Initialisation sequence and main display loop.
 
 | Task | Period | Mechanism |
 |---|---|---|
-| Display refresh | ~33 ms (30 FPS) | `FastLED.show()` in main loop |
-| Colon toggle | 1 s | `millis()` delta in main loop |
-| Display state switch | configurable (default 5 s) | `millis()` delta in main loop |
-| LDR read | 500 ms | `millis()` delta in `matrix.cpp` |
+| Display refresh | ~33 ms (30 FPS) | `FastLED.show()` + `vTaskDelay(pdMS_TO_TICKS(33))` |
+| Colon toggle | 1 s | `ms_now()` delta in main loop |
+| Clock→Temp switch | `CLOCK_DISPLAY_MS` (config) | `ms_now()` delta in main loop |
+| Temp→Clock switch | `TEMP_DISPLAY_MS` (default 5 s) | `ms_now()` delta in main loop |
+| LDR read | 500 ms | `ms_now()` delta in `matrix.cpp` |
 | BLE scan | continuous | ESP32 BLE stack background task |
 | NTP maintain | on WiFi reconnect | checked in main loop via `ntpMaintain()` |
 
 ## Build Configuration (`platformio.ini`)
 
 ```ini
-[env:esp32c6]
+[env:esp32-c6-devkitm-1]
 platform  = espressif32
-board     = esp32-c6-devkitc-1
-framework = arduino
+board     = esp32-c6-devkitm-1
+framework = espidf
 lib_deps  = fastled/FastLED
 monitor_speed = 115200
 ```
