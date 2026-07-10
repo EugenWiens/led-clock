@@ -14,7 +14,8 @@ public:
 
     /// Sample the ADC if LDR_SAMPLE_MS ms have elapsed since the last sample.
     /// @param nowMs  Current time in milliseconds.
-    void update(uint64_t nowMs);
+    /// @return true if a new sample was taken and brightness was updated.
+    bool update(uint64_t nowMs);
 
     /// Returns the last computed brightness (BRIGHTNESS_MIN–BRIGHTNESS_MAX).
     uint8_t brightness() const;

@@ -12,8 +12,8 @@ void Ldr::init() {
     m_adcHal.init();
 }
 
-void Ldr::update(uint64_t nowMs) {
-    if (nowMs - m_lastSampleMs < LDR_SAMPLE_MS) return;
+bool Ldr::update(uint64_t nowMs) {
+    if (nowMs - m_lastSampleMs < LDR_SAMPLE_MS) return false;
     m_lastSampleMs = nowMs;
 
     m_samples[m_sampleIdx] = m_adcHal.read();
@@ -34,6 +34,7 @@ void Ldr::update(uint64_t nowMs) {
         std::clamp(b,
                    static_cast<int>(BRIGHTNESS_MIN),
                    static_cast<int>(BRIGHTNESS_MAX)));
+    return true;
 }
 
 uint8_t Ldr::brightness() const {

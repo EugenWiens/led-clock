@@ -38,8 +38,9 @@ C++ interfaces, enabling host-side unit testing without a physical device.
    └──────┬──────┘                  └──────┬──────┘
           │ device                         │ device
    ┌──────▼──────┐                  ┌──────▼──────┐
-   │ FastLedHal  │                  │ EspAdcHal   │
-   │ FastLED/RMT │                  │ adc_oneshot │
+   │EspLedStrip  │                  │ EspAdcHal   │
+   │   Hal       │                  │ adc_oneshot │
+   │ESP-IDF RMT  │                  │  GPIO2      │
    └─────────────┘                  └─────────────┘
 ```
 
@@ -63,11 +64,16 @@ class ILedHal {
 };
 ```
 
-`FastLedHal` (device-only, `#ifndef NATIVE_ENV`) implements `ILedHal` using
-`FastLED.addLeds<WS2812B, LED_DATA_PIN, GRB>()` via the ESP32 RMT peripheral.
+`EspLedStripHal` (device-only, `#ifndef NATIVE_ENV`) implements `ILedHal` using
+the ESP-IDF `esp_driver_rmt` component — **no FastLED dependency**:
+- `init()` — configures an RMT TX channel at 10 MHz on `LED_DATA_PIN` and creates
+  a `rmt_bytes_encoder` with WS2812B bit timing (T0H=400 ns, T1H=800 ns)
+- `show()` — builds a GRB buffer scaled by brightness, calls `rmt_transmit()` then
+  waits for completion and holds the line LOW for 60 µs (WS2812B reset)
+- `setBrightness()` — stores scale factor applied per-pixel in `show()`
 
-`led_hal.h` also provides the `CRGB` type: FastLED's `CRGB` on device, a minimal
-struct stub (`r`, `g`, `b` members) under `NATIVE_ENV`.
+`CRGB` is a plain self-contained struct defined directly in `led_hal.h` (no
+`#ifdef NATIVE_ENV` needed — no external library dependency).
 
 ### `src/hal/adc_hal.h/.cpp`
 Abstract ADC hardware interface.
@@ -90,9 +96,9 @@ the result linearly to a brightness value.
 ```cpp
 class Ldr {
     explicit Ldr(IAdcHal& adcHal);
-    void    init();                  // reset state + init ADC
-    void    update(uint64_t nowMs);  // throttled to LDR_SAMPLE_MS
-    uint8_t brightness() const;      // BRIGHTNESS_MIN–BRIGHTNESS_MAX
+    void    init();                   // reset state + init ADC
+    bool    update(uint64_t nowMs);   // throttled to LDR_SAMPLE_MS; true = new sample
+    uint8_t brightness() const;       // BRIGHTNESS_MIN–BRIGHTNESS_MAX
 };
 ```
 
@@ -125,23 +131,40 @@ globalIdx = matrixIdx * 64 + row * 8 + col
 Within each 8×8 module, pixels are indexed row-by-row, top-to-bottom,
 left-to-right (standard WS2812B module layout).
 
-`updateBrightness(nowMs)` delegates to `m_ldr.update(nowMs)` then calls
-`m_ledHal.setBrightness(m_ldr.brightness())`.
+`updateBrightness(nowMs)` delegates to `m_ldr.update(nowMs)`; it calls
+`m_ledHal.setBrightness(m_ldr.brightness())` **only** when `update()` returns
+`true` (i.e. a new ADC sample was taken).
 
 ### `src/display/font.h`
-Static `const uint8_t FONT[11][7]` table.
-- Indices 0–9 → digit glyphs
-- Index 10 → colon `:`
-- Each entry is 7 bytes (one per row); bit 4 (MSB of lower nibble) = leftmost pixel
-  of a 5-pixel-wide glyph, giving a 5×7 active area within the 8×8 cell.
+Static `constexpr uint8_t font::FONT[13][7]` table (namespace `font`).
+- Indices 0–9 → digit glyphs `'0'`–`'9'`
+- Index 10 → colon `':'`
+- Index 11 → dash `'-'` (used in `"--.-"` fallback)
+- Index 12 → degree `'°'` (matrix 4 in temperature mode)
+- Each entry is 7 bytes (one per row); bit 4 = leftmost pixel of the 5-wide glyph.
+  Renderer applies `col_offset = 1` to centre the 5×7 glyph in the 8×8 cell.
+
+Named constants: `font::IDX_COLON`, `font::IDX_DASH`, `font::IDX_DEGREE`.
 
 ### `src/display/renderer.h/.cpp`
-Renders content onto the matrix buffer. Calls `matrix.setPixel()`.
-- `renderDigit(uint8_t matrixIdx, uint8_t digit, CRGB color)`
-- `renderColon(bool on, CRGB color)` — matrix index 2
-- `renderClock(uint8_t hh, uint8_t mm, bool colonOn)`
-- `renderTemp(float tempC)` — formats as `"23.5"` spread across 4 matrices;
-  falls back to `"--.-"` when `tempC == NAN`
+Renders content onto the matrix buffer via constructor-injected `Matrix&`.
+
+```cpp
+class Renderer {
+    explicit Renderer(Matrix& matrix);
+    void renderClock(uint8_t hh, uint8_t mm, bool colonOn);
+    void renderTemp(float tempC);   // NAN or out of [-9.9, 99.9] → "--.-°"
+};
+```
+
+Temperature layout across 5 matrices:
+```
+[  0  ] [  1  ] [  2  ] [  3  ] [  4  ]
+  tens   units    dot   frac     °
+```
+Matrix 0 is blank for single-digit temperatures. Colours:
+- `CLOCK_COLOR` = amber `{255, 120, 0}` (defined in `renderer.h`)
+- `TEMP_COLOR`  = cyan  `{0, 200, 255}`
 
 ### `src/network/ntp.h/.cpp`
 - `ntpBegin()` — connects WiFi, configures SNTP via `esp_sntp_*`, sets timezone
@@ -163,10 +186,11 @@ ESP-IDF entry point `app_main()`. Creates HAL and `Matrix` as `static` locals
 (BSS segment, not task stack) to avoid stack overflow with the 960-byte LED buffer:
 
 ```cpp
-static FastLedHal ledHal;
-static EspAdcHal  adcHal;
-static Matrix     matrix{ledHal, adcHal};
-matrix.init();
+static EspLedStripHal s_ledHal;
+static EspAdcHal      s_adcHal;
+static Matrix         s_matrix{s_ledHal, s_adcHal};
+static Renderer       s_renderer{s_matrix};
+s_matrix.init();
 ```
 
 Followed by a FreeRTOS loop (`vTaskDelay(pdMS_TO_TICKS(33))`). Timing uses
@@ -181,6 +205,7 @@ C++ stub classes implementing the same abstract interfaces — no macros require
 |---|---|---|
 | `test_display` | `test/test_display/test_matrix.cpp` | Coordinate mapping, `clear()`, `updateBrightness` wiring |
 | `test_ldr` | `test/test_ldr/test_ldr.cpp` | Rolling average, linear brightness map, time gating, clamp |
+| `test_renderer` | `test/test_renderer/test_renderer.cpp` | Font glyph data, digit placement, colon on/off, temp formatting, NaN fallback |
 
 Stub pattern:
 ```cpp
@@ -192,7 +217,7 @@ class StubLedHal final : public ILedHal {
 };
 ```
 
-Build filter for native env: `build_src_filter = -<*> +<display/matrix.cpp> +<display/ldr.cpp>`
+Build filter for native env: `build_src_filter = -<*> +<display/matrix.cpp> +<display/ldr.cpp> +<display/renderer.cpp>`
 (HAL `.cpp` files are excluded; stub classes in the test file provide the implementations.)
 
 ## Display State Machine
@@ -251,11 +276,12 @@ via `${private_credentials.build_flags}` in the device environment.
 platform  = espressif32
 board     = esp32-c6-devkitm-1
 framework = espidf
-lib_deps  = fastled/FastLED @ ^3.7.0
+; No lib_deps — LED strip driven via built-in esp_driver_rmt component
 build_flags = -std=gnu++2a -Wall -Wextra ${private_credentials.build_flags}
 
 [env:native]          ; host-side unit tests — pio test -e native
 platform = native
+targets  = test       ; prevents accidental pio run -e native
 build_flags = -std=c++2a -Wall -Wextra -DNATIVE_ENV
-build_src_filter = -<*> +<display/matrix.cpp> +<display/ldr.cpp>
+build_src_filter = -<*> +<display/matrix.cpp> +<display/ldr.cpp> +<display/renderer.cpp>
 ```
