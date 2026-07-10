@@ -471,6 +471,8 @@
                 "WIFI_SSID=\"your_ssid\"",
                 "WIFI_PASS=\"your_password\"",
                 "SWITCHBOT_MAC=\"aa:bb:cc:dd:ee:ff\"",
+                "NTP_SERVER=\"pool.ntp.org\"",
+                "TIMEZONE=\"CET-1CEST,M3.5.0,M10.5.0/3\"",
                 ""
             ],
             "cStandard": "gnu23",

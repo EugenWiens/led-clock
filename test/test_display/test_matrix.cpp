@@ -168,28 +168,3 @@ int main() {
     RUN_TEST(test_rolling_average_converges_from_mixed_samples);
     return UNITY_END();
 }
-
-
-// ---------------------------------------------------------------------------
-// Test runner
-// ---------------------------------------------------------------------------
-int main() {
-    UNITY_BEGIN();
-
-    RUN_TEST(test_setPixel_matrix0_origin);
-    RUN_TEST(test_setPixel_matrix0_col7);
-    RUN_TEST(test_setPixel_matrix0_row7);
-    RUN_TEST(test_setPixel_matrix0_last);
-    RUN_TEST(test_setPixel_matrix1_origin);
-    RUN_TEST(test_setPixel_matrix4_last);
-    RUN_TEST(test_setPixel_does_not_bleed_into_next_matrix);
-    RUN_TEST(test_setPixel_out_of_bounds_no_crash);
-    RUN_TEST(test_clear_zeroes_all_leds);
-    RUN_TEST(test_brightness_not_updated_before_sample_interval);
-    RUN_TEST(test_brightness_min_at_adc_zero);
-    RUN_TEST(test_brightness_max_at_adc_full);
-    RUN_TEST(test_brightness_midpoint_at_adc_half);
-    RUN_TEST(test_rolling_average_converges_from_mixed_samples);
-
-    return UNITY_END();
-}

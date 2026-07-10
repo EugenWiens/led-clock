@@ -27,8 +27,9 @@ void Matrix::show() {
 }
 
 void Matrix::updateBrightness(uint64_t nowMs) {
-    m_ldr.update(nowMs);
-    m_ledHal.setBrightness(m_ldr.brightness());
+    if (m_ldr.update(nowMs)) {
+        m_ledHal.setBrightness(m_ldr.brightness());
+    }
 }
 
 #ifdef NATIVE_ENV

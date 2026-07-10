@@ -58,10 +58,13 @@ led_clock/
 - [x] Unit tests: test/test_display/test_matrix.cpp (14 test cases)
 
 ### Phase 3: Font & Renderer (src/display/)
-- [ ] 5x7 bitmap font as uint8_t[11][7] for digits 0–9 and ':'
-- [ ] renderDigit(matrixIndex, digit, color)
-- [ ] renderClock(hh, mm) — digits on matrices 0, 1, 2 (colon), 3, 4
-- [ ] renderTemp(float temp) — format: "23.5" or "--.-"
+- [x] 5x7 bitmap font as `uint8_t FONT[13][7]` — digits 0–9, ':', '-', '°' (namespace `font`)
+- [x] `Renderer(Matrix&)` class with constructor injection
+- [x] `renderGlyph(matrixIdx, fontIdx, color)` — col_offset=1, bits 4–0 per row
+- [x] `renderClock(hh, mm, colonOn)` — matrices 0,1 (hour), 2 (colon), 3,4 (minute)
+- [x] `renderTemp(float)` — matrices 0,1 (int), 2 (dot), 3 (frac), 4 (°); NaN/OOB → "--.-°"
+- [x] `inline constexpr` colours: `CLOCK_COLOR` (amber), `TEMP_COLOR` (cyan)
+- [x] Unit tests: `test/test_renderer/test_renderer.cpp` (14 test cases)
 
 ### Phase 4: WiFi + NTP (src/network/)
 - [ ] configTzTime() with POSIX string (e.g. "CET-1CEST,M3.5.0,M10.5.0/3")
