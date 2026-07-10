@@ -50,10 +50,12 @@ led_clock/
 - [x] config.h with WiFi credentials, timezone, LED pin, LDR pin, SwitchBot MAC
 
 ### Phase 2: LED Matrix Driver + LDR (src/display/)
-- [ ] FastLED: 320 LEDs (5x64), GPIO8
-- [ ] Coordinate mapping: (matrixIndex, col, row) → global LED index
-- [ ] Core functions: clear(), setPixel(), show()
-- [ ] LDR: analogRead(GPIO2) every 500ms, rolling average (8 samples), map to FastLED setBrightness(10–255)
+- [x] FastLED: 320 LEDs (5x64), GPIO8
+- [x] Coordinate mapping: (matrixIndex, col, row) → global LED index
+- [x] Core functions: clear(), setPixel(), show()
+- [x] LDR: adc_oneshot_read (GPIO2/ADC_CHANNEL_2) every 500ms, rolling average (8 samples), map to FastLED setBrightness(10–255)
+- [x] HAL wrapper (src/hal/led_hal, adc_hal) — FFF-mockable boundary for unit tests
+- [x] Unit tests: test/test_display/test_matrix.cpp (14 test cases)
 
 ### Phase 3: Font & Renderer (src/display/)
 - [ ] 5x7 bitmap font as uint8_t[11][7] for digits 0–9 and ':'
