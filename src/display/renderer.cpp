@@ -40,10 +40,10 @@ void Renderer::renderTemp(float tempC) {
     m_matrix.clear();
 
     if (std::isnan(tempC) || tempC < -9.9f || tempC > 99.9f) {
-        renderGlyph(0u, font::IDX_DASH,   TEMP_COLOR);
-        renderGlyph(1u, font::IDX_DASH,   TEMP_COLOR);
+        renderGlyph(0u, font::IDX_DASH, TEMP_COLOR);
+        renderGlyph(1u, font::IDX_DASH, TEMP_COLOR);
         renderDecimalDot(TEMP_COLOR);
-        renderGlyph(3u, font::IDX_DASH,   TEMP_COLOR);
+        renderGlyph(3u, font::IDX_DASH, TEMP_COLOR);
         renderGlyph(4u, font::IDX_DEGREE, TEMP_COLOR);
         return;
     }
@@ -51,21 +51,23 @@ void Renderer::renderTemp(float tempC) {
     const bool  negative = tempC < 0.0f;
     const float absTemp  = negative ? -tempC : tempC;
     const int   intPart  = static_cast<int>(absTemp);
-    int fracPart = static_cast<int>((absTemp - static_cast<float>(intPart)) * 10.0f + 0.5f);
-    if (fracPart >= 10) { fracPart = 9; }
+    int fracPart = static_cast<int>(std::lround((absTemp - static_cast<float>(intPart)) * 10.0f));
+    if (fracPart >= 10) {
+        fracPart = 9;
+    }
 
     if (negative) {
-        renderGlyph(0u, font::IDX_DASH,                       TEMP_COLOR);
-        renderGlyph(1u, static_cast<uint8_t>(intPart % 10),   TEMP_COLOR);
+        renderGlyph(0u, font::IDX_DASH, TEMP_COLOR);
+        renderGlyph(1u, static_cast<uint8_t>(intPart % 10), TEMP_COLOR);
     } else if (intPart >= 10) {
-        renderGlyph(0u, static_cast<uint8_t>(intPart / 10),   TEMP_COLOR);
-        renderGlyph(1u, static_cast<uint8_t>(intPart % 10),   TEMP_COLOR);
+        renderGlyph(0u, static_cast<uint8_t>(intPart / 10), TEMP_COLOR);
+        renderGlyph(1u, static_cast<uint8_t>(intPart % 10), TEMP_COLOR);
     } else {
         // Single-digit: leave matrix 0 blank (already cleared)
-        renderGlyph(1u, static_cast<uint8_t>(intPart),        TEMP_COLOR);
+        renderGlyph(1u, static_cast<uint8_t>(intPart), TEMP_COLOR);
     }
 
     renderDecimalDot(TEMP_COLOR);
     renderGlyph(3u, static_cast<uint8_t>(fracPart), TEMP_COLOR);
-    renderGlyph(4u, font::IDX_DEGREE,               TEMP_COLOR);
+    renderGlyph(4u, font::IDX_DEGREE, TEMP_COLOR);
 }

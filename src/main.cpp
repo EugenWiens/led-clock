@@ -20,14 +20,14 @@ static uint64_t ms_now() {
 
 // Static objects avoid placing the ~960 B LED buffer on the app_main stack.
 static EspLedStripHal s_ledHal;
-static EspAdcHal     s_adcHal;
-static Matrix        s_matrix{s_ledHal, s_adcHal};
-static Renderer      s_renderer{s_matrix};
+static EspAdcHal      s_adcHal;
+static Matrix         s_matrix{s_ledHal, s_adcHal};
+static Renderer       s_renderer{s_matrix};
 
-static DisplayState  s_state{SHOW_CLOCK};
-static uint64_t      s_stateEnteredAt{0};
-static uint64_t      s_lastColonToggle{0};
-static bool          s_colonOn{true};
+static DisplayState s_state{SHOW_CLOCK};
+static uint64_t     s_stateEnteredAt{0};
+static uint64_t     s_lastColonToggle{0};
+static bool         s_colonOn{true};
 
 extern "C" void app_main() {
     s_matrix.init();
