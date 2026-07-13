@@ -1,5 +1,8 @@
 # ESP32-C6 WS2812 LED Clock
 
+[![CI](https://github.com/EugenWiens/led-clock/actions/workflows/ci.yml/badge.svg)](https://github.com/EugenWiens/led-clock/actions/workflows/ci.yml)
+[![CodeFactor](https://www.codefactor.io/repository/github/EugenWiens/led-clock/badge)](https://www.codefactor.io/repository/github/EugenWiens/led-clock)
+
 An ESP32-C6-based LED matrix clock displaying time and ambient temperature.
 The display alternates between the current time (NTP-synced) and temperature
 data received from a SwitchBot Meter via Bluetooth LE.
