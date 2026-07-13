@@ -1,0 +1,164 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ─── Phase 1: parallel QA / test jobs ────────────────────────────────────────
+
+  qa-static:
+    name: Static QA (cppcheck · clang-format · grep)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install tools
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y cppcheck clang-format
+
+      - name: cppcheck (QA-01)
+        run: |
+          cppcheck \
+            --enable=all \
+            --error-exitcode=1 \
+            --suppress=missingIncludeSystem \
+            --suppress=missingInclude \
+            src/
+
+      - name: clang-format check (QA-04)
+        run: |
+          find src/ \( -name '*.cpp' -o -name '*.h' \) \
+            | xargs clang-format --dry-run --Werror
+
+      - name: No TODO / FIXME / HACK in production code (QA-05)
+        run: |
+          if grep -rn 'TODO\|FIXME\|HACK' src/; then
+            echo "::error::Found TODO/FIXME/HACK comments in src/"
+            exit 1
+          fi
+
+  clang-tidy:
+    name: clang-tidy (QA-03)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install tools
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y clang-tidy python3-pip
+
+      - name: Cache PlatformIO packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: pio-native-${{ runner.os }}-${{ hashFiles('platformio.ini') }}
+          restore-keys: pio-native-${{ runner.os }}-
+
+      - name: Install PlatformIO
+        run: pip install -U platformio
+
+      - name: Create stub platformio_user.ini
+        run: printf '[private_credentials]\nbuild_flags =\n' > platformio_user.ini
+
+      - name: Generate compile_commands.json
+        run: pio run -e native -t compiledb
+
+      - name: Run clang-tidy on display sources (QA-03)
+        run: |
+          clang-tidy -p . \
+            src/display/matrix.cpp \
+            src/display/renderer.cpp \
+            src/display/ldr.cpp
+
+  test:
+    name: Unit Tests + Coverage (QA-10..14)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install tools
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y python3-pip lcov
+
+      - name: Cache PlatformIO packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: pio-native-${{ runner.os }}-${{ hashFiles('platformio.ini') }}
+          restore-keys: pio-native-${{ runner.os }}-
+
+      - name: Install PlatformIO
+        run: pip install -U platformio
+
+      - name: Create stub platformio_user.ini
+        run: printf '[private_credentials]\nbuild_flags =\n' > platformio_user.ini
+
+      - name: Run unit tests (QA-12)
+        run: pio test -e native
+
+      - name: Re-run with coverage instrumentation (QA-13)
+        run: |
+          pio test -e native \
+            --project-option="build_flags=-std=c++2a -Wall -Wextra -DNATIVE_ENV -fprofile-arcs -ftest-coverage"
+
+      - name: Generate coverage report
+        run: |
+          lcov --capture \
+               --directory .pio/ \
+               --output-file coverage.info
+          lcov --remove coverage.info \
+               '/usr/*' \
+               '*/test/*' \
+               --output-file coverage.info
+          genhtml coverage.info --output-directory coverage-html
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage-html/
+          retention-days: 14
+
+  # ─── Phase 2: firmware build (only after all QA + tests pass) ─────────────────
+
+  build:
+    name: Firmware Build (ESP32-C6)
+    runs-on: ubuntu-latest
+    needs: [qa-static, clang-tidy, test]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install PlatformIO
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y python3-pip
+          pip install -U platformio
+
+      - name: Cache PlatformIO packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: pio-esp32-${{ runner.os }}-${{ hashFiles('platformio.ini') }}
+          restore-keys: pio-esp32-${{ runner.os }}-
+
+      # Stub credentials — compile-only check (no real Wi-Fi/BLE required)
+      - name: Create platformio_user.ini with stub credentials
+        run: |
+          cat > platformio_user.ini << 'EOF'
+          [private_credentials]
+          build_flags =
+              '-DWIFI_SSID="ci"'
+              '-DWIFI_PASS="ci"'
+              '-DSWITCHBOT_MAC="00:00:00:00:00:00"'
+              '-DNTP_SERVER="pool.ntp.org"'
+              '-DTIMEZONE="UTC"'
+          EOF
+
+      - name: Build firmware
+        run: pio run -e esp32-c6-devkitm-1
