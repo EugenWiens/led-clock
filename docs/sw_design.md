@@ -279,9 +279,54 @@ framework = espidf
 ; No lib_deps — LED strip driven via built-in esp_driver_rmt component
 build_flags = -std=gnu++2a -Wall -Wextra ${private_credentials.build_flags}
 
-[env:native]          ; host-side unit tests — pio test -e native
+[env:native]               ; host-side unit tests — pio test -e native
 platform = native
-targets  = test       ; prevents accidental pio run -e native
+targets  = test            ; prevents accidental pio run -e native
 build_flags = -std=c++2a -Wall -Wextra -DNATIVE_ENV
 build_src_filter = -<*> +<display/matrix.cpp> +<display/ldr.cpp> +<display/renderer.cpp>
+
+[env:native_coverage]      ; same as native but with gcov instrumentation — CI only
+platform = native
+targets  = test
+build_flags = -std=c++2a -Wall -Wextra -DNATIVE_ENV -fprofile-arcs -ftest-coverage -lgcov
+build_src_filter = -<*> +<display/matrix.cpp> +<display/ldr.cpp> +<display/renderer.cpp>
 ```
+
+## CI / Quality Assurance
+
+The repository uses GitHub Actions (`.github/workflows/ci.yml`). Five jobs run on every
+push and pull-request to `main`:
+
+```
+codefactor ──┐
+qa-static  ──┤
+clang-tidy ──┼──► build (ESP32-C6)
+test       ──┘
+```
+
+| Job | QA IDs | What it does |
+|---|---|---|
+| `codefactor` | QA-23 | Fetches public CodeFactor badge; fails if grade < B; warning-only if repo not yet connected |
+| `qa-static` | QA-01, QA-04, QA-05 | `cppcheck --enable=warning,performance,portability`; `clang-format --dry-run --Werror`; grep for TODO/FIXME/HACK |
+| `clang-tidy` | QA-03 | `pio run -e native -t compiledb` then `clang-tidy -p .` on `src/display/` sources |
+| `test` | QA-10–14 | `pio test -e native` (38 cases); `pio test -e native_coverage` + `lcov`/`genhtml`; uploads HTML coverage artifact |
+| `build` | — | `pio run -e esp32-c6-devkitm-1` with stub credentials; blocked until all four Phase-1 jobs pass |
+
+### Static analysis config files
+
+**`.clang-format`** — LLVM base style, 4-space indent, column limit 100, pointer-left alignment.
+Run `clang-format -i src/**/*.{cpp,h}` to reformat after changes.
+
+**`.clang-tidy`** — enables `clang-diagnostic-*`, `clang-analyzer-*`, `bugprone-*`,
+`modernize-*`, `readability-*`, `performance-*`. Disabled for embedded compatibility:
+`modernize-macro-to-enum`, `modernize-avoid-c-arrays`, `readability-braces-around-statements`,
+`readability-uppercase-literal-suffix`, `readability-implicit-bool-conversion`,
+`readability-magic-numbers`, `bugprone-easily-swappable-parameters`.
+All enabled checks are treated as errors (`WarningsAsErrors: "*"`).
+
+### Coverage notes
+
+`pio test` does not accept `--project-option`; coverage flags are placed in the dedicated
+`[env:native_coverage]` environment. The `--coverage` GCC driver shorthand is not forwarded
+by PlatformIO's SCons linker — flags must be listed explicitly as
+`-fprofile-arcs -ftest-coverage -lgcov`.
