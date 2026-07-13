@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
-#include "../hal/led_hal.h"  // provides CRGB + ILedHal
-#include "../hal/adc_hal.h"  // provides IAdcHal
+#include "../hal/led_hal.h" // provides CRGB + ILedHal
+#include "../hal/adc_hal.h" // provides IAdcHal
 #include "ldr.h"
 #include "../config.h"
 
@@ -31,7 +31,7 @@ public:
 
 #ifdef NATIVE_ENV
     /// Test helper — returns the CRGB value at absolute LED index @p idx.
-    CRGB getLed(uint16_t idx) const;
+    [[nodiscard]] CRGB getLed(uint16_t idx) const;
 #endif
 
 private:

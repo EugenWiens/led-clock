@@ -18,7 +18,7 @@ public:
     bool update(uint64_t nowMs);
 
     /// Returns the last computed brightness (BRIGHTNESS_MIN–BRIGHTNESS_MAX).
-    uint8_t brightness() const;
+    [[nodiscard]] uint8_t brightness() const;
 
 private:
     IAdcHal& m_adcHal;

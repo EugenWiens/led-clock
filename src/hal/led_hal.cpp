@@ -32,10 +32,14 @@ void EspLedStripHal::init(CRGB* leds, uint16_t count) {
     // bit0: HIGH 400 ns (4 ticks), LOW 800 ns (8 ticks)
     // bit1: HIGH 800 ns (8 ticks), LOW 400 ns (4 ticks)
     rmt_bytes_encoder_config_t enc_cfg{};
-    enc_cfg.bit0.duration0 = 4;  enc_cfg.bit0.level0 = 1;
-    enc_cfg.bit0.duration1 = 8;  enc_cfg.bit0.level1 = 0;
-    enc_cfg.bit1.duration0 = 8;  enc_cfg.bit1.level0 = 1;
-    enc_cfg.bit1.duration1 = 4;  enc_cfg.bit1.level1 = 0;
+    enc_cfg.bit0.duration0  = 4;
+    enc_cfg.bit0.level0     = 1;
+    enc_cfg.bit0.duration1  = 8;
+    enc_cfg.bit0.level1     = 0;
+    enc_cfg.bit1.duration0  = 8;
+    enc_cfg.bit1.level0     = 1;
+    enc_cfg.bit1.duration1  = 4;
+    enc_cfg.bit1.level1     = 0;
     enc_cfg.flags.msb_first = 1; // WS2812B sends MSB first
     rmt_new_bytes_encoder(&enc_cfg, &m_bytesEnc);
 
@@ -52,8 +56,8 @@ void EspLedStripHal::show() {
     }
 
     rmt_transmit_config_t tx_cfg{};
-    tx_cfg.loop_count = 0;
-    tx_cfg.flags.eot_level = 0;         // line stays LOW after TX → WS2812B reset
+    tx_cfg.loop_count      = 0;
+    tx_cfg.flags.eot_level = 0; // line stays LOW after TX → WS2812B reset
     rmt_transmit(m_txChan, m_bytesEnc, s_grb, m_count * 3u, &tx_cfg);
     rmt_tx_wait_all_done(m_txChan, portMAX_DELAY);
 

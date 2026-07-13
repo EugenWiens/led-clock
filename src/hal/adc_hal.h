@@ -3,9 +3,9 @@
 /// Abstract ADC hardware interface — injected into Matrix via constructor.
 class IAdcHal {
 public:
-    virtual ~IAdcHal() = default;
+    virtual ~IAdcHal()  = default;
     virtual void init() = 0;
-    virtual int  read() = 0;  ///< Returns a raw 12-bit sample: 0–4095.
+    virtual int  read() = 0; ///< Returns a raw 12-bit sample: 0–4095.
 };
 
 #ifndef NATIVE_ENV
@@ -16,6 +16,7 @@ class EspAdcHal final : public IAdcHal {
 public:
     void init() override;
     int  read() override;
+
 private:
     adc_oneshot_unit_handle_t m_handle{};
 };

@@ -3,8 +3,8 @@
 #include "matrix.h"
 
 /// Display colours — defined here as they are a rendering concern.
-inline constexpr CRGB CLOCK_COLOR{255, 120,   0};  // warm amber
-inline constexpr CRGB TEMP_COLOR {  0, 200, 255};  // cyan
+inline constexpr CRGB CLOCK_COLOR{255, 120, 0}; // warm amber
+inline constexpr CRGB TEMP_COLOR{0, 200, 255};  // cyan
 
 class Renderer {
 public:

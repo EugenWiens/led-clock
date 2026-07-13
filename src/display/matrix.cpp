@@ -1,8 +1,7 @@
 #include "matrix.h"
 #include <cstdint>
 
-Matrix::Matrix(ILedHal& ledHal, IAdcHal& adcHal)
-    : m_ledHal{ledHal}, m_ldr{adcHal} {}
+Matrix::Matrix(ILedHal& ledHal, IAdcHal& adcHal) : m_ledHal{ledHal}, m_ldr{adcHal} {}
 
 void Matrix::init() {
     m_ldr.init();
@@ -19,7 +18,7 @@ void Matrix::clear() {
 
 void Matrix::setPixel(uint8_t matrixIdx, uint8_t col, uint8_t row, CRGB color) {
     if (matrixIdx >= 5u || col >= 8u || row >= 8u) return;
-    m_leds[matrixIdx * 64u + row * 8u + col] = color;
+    m_leds[(matrixIdx * 64u) + (row * 8u) + col] = color;
 }
 
 void Matrix::show() {
@@ -34,7 +33,7 @@ void Matrix::updateBrightness(uint64_t nowMs) {
 
 #ifdef NATIVE_ENV
 CRGB Matrix::getLed(uint16_t idx) const {
-    if (idx >= LED_COUNT) return CRGB(0, 0, 0);
+    if (idx >= LED_COUNT) return {};
     return m_leds[idx];
 }
 #endif
