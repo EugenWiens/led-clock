@@ -36,7 +36,7 @@ public:
 
 private:
     ILedHal& m_ledHal;
-    Ldr      m_ldr;
+    Ldr m_ldr;
 
     CRGB m_leds[LED_COUNT];
 };

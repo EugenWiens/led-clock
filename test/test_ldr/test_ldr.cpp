@@ -8,11 +8,11 @@ class StubAdcHal final : public IAdcHal {
 public:
     int value{2048};
     void init() override {}
-    int  read() override { return value; }
+    int read() override { return value; }
 };
 
 static StubAdcHal g_adc;
-static Ldr        g_ldr{g_adc};
+static Ldr g_ldr{g_adc};
 
 void setUp() {
     g_adc.value = 2048;
@@ -58,8 +58,11 @@ void test_update_triggered_at_interval() {
 // ---------------------------------------------------------------------------
 static void feed(int adc, uint8_t n) {
     g_adc.value = adc;
-    uint64_t t  = 0;
-    for (uint8_t i = 0; i < n; ++i) { t += LDR_SAMPLE_MS; g_ldr.update(t); }
+    uint64_t t = 0;
+    for (uint8_t i = 0; i < n; ++i) {
+        t += LDR_SAMPLE_MS;
+        g_ldr.update(t);
+    }
 }
 
 void test_brightness_min_at_adc_zero() {
@@ -83,7 +86,7 @@ void test_brightness_midpoint_at_adc_half() {
 // ---------------------------------------------------------------------------
 void test_rolling_average_converges() {
     // 4 samples at 0, then 4 at 4095 → avg ≈ 2048 → ~132
-    feed(0,    4);
+    feed(0, 4);
     feed(4095, 4);
     TEST_ASSERT_INT_WITHIN(2, 132, g_ldr.brightness());
 }

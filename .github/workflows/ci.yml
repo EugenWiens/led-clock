@@ -38,10 +38,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: LLVM & Clang (Version 22) installieren
+        uses: ZhongRuoyu/setup-llvm@v0
+        with:
+          llvm-version: '22'
+          
       - name: Install tools
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y cppcheck clang-format
+          sudo apt-get install -y cppcheck 
 
       - name: cppcheck (QA-01)
         run: |
@@ -73,7 +78,7 @@ jobs:
       - name: Install tools
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y clang-tidy python3-pip
+          sudo apt-get install -y clang-tidy jq python3-pip
 
       - name: Cache PlatformIO packages
         uses: actions/cache@v4
@@ -91,12 +96,14 @@ jobs:
       - name: Generate compile_commands.json
         run: pio run -e native -t compiledb
 
-      - name: Run clang-tidy on display sources (QA-03)
+      - name: Run clang-tidy on native production sources (QA-03)
+        shell: bash
         run: |
-          clang-tidy -p . \
-            src/display/matrix.cpp \
-            src/display/renderer.cpp \
-            src/display/ldr.cpp
+          mapfile -t sources < <(
+            jq -r '.[] | select(.file | startswith("src/")) | .file' compile_commands.json
+          )
+          [[ ${#sources[@]} -gt 0 ]]
+          clang-tidy -p . --warnings-as-errors='*' "${sources[@]}"
 
   test:
     name: Unit Tests + Coverage (QA-10..14)

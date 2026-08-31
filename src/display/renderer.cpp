@@ -48,9 +48,9 @@ void Renderer::renderTemp(float tempC) {
         return;
     }
 
-    const bool  negative = tempC < 0.0f;
-    const float absTemp  = negative ? -tempC : tempC;
-    const int   intPart  = static_cast<int>(absTemp);
+    const bool negative = tempC < 0.0f;
+    const float absTemp = negative ? -tempC : tempC;
+    const int intPart = static_cast<int>(absTemp);
     int fracPart = static_cast<int>(std::lround((absTemp - static_cast<float>(intPart)) * 10.0f));
     if (fracPart >= 10) {
         fracPart = 9;

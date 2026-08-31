@@ -3,7 +3,7 @@
 #include "hal/led_hal.h"
 #include "hal/adc_hal.h"
 // #include "network/ntp.h"         // Phase 4
-// #include "ble/switchbot.h"        // Phase 5
+#include "ble/switchbot.h" // Phase 5
 
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
@@ -20,18 +20,19 @@ static uint64_t ms_now() {
 
 // Static objects avoid placing the ~960 B LED buffer on the app_main stack.
 static EspLedStripHal s_ledHal;
-static EspAdcHal      s_adcHal;
-static Matrix         s_matrix{s_ledHal, s_adcHal};
-static Renderer       s_renderer{s_matrix};
+static EspAdcHal s_adcHal;
+static Matrix s_matrix{s_ledHal, s_adcHal};
+static Renderer s_renderer{s_matrix};
 
-static DisplayState s_state{SHOW_CLOCK};
-static uint64_t     s_stateEnteredAt{0};
-static uint64_t     s_lastColonToggle{0};
-static bool         s_colonOn{true};
+[[maybe_unused]] static DisplayState s_state{SHOW_CLOCK};
+static uint64_t s_stateEnteredAt{0};
+static uint64_t s_lastColonToggle{0};
+[[maybe_unused]] static bool s_colonOn{true};
 
 extern "C" void app_main() {
     s_matrix.init();
-    s_stateEnteredAt  = ms_now();
+    switchbotBegin(); // Phase 5: start passive BLE scan
+    s_stateEnteredAt = ms_now();
     s_lastColonToggle = ms_now();
 
     for (;;) {
