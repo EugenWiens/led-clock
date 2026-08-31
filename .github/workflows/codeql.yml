@@ -1,0 +1,54 @@
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '30 3 * * 1'
+
+permissions:
+  actions: read
+  contents: read
+  security-events: write
+
+jobs:
+  analyze:
+    name: Analyze C++
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: cpp
+          build-mode: manual
+          queries: security-extended
+
+      - name: Install PlatformIO
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y python3-pip
+          pip install -U platformio
+
+      - name: Cache PlatformIO packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: pio-codeql-${{ runner.os }}-${{ hashFiles('platformio.ini') }}
+          restore-keys: pio-codeql-${{ runner.os }}-
+
+      - name: Create stub platformio_user.ini
+        run: printf '[private_credentials]\nbuild_flags =\n' > platformio_user.ini
+
+      - name: Build native sources for CodeQL
+        run: pio run -e native
+
+      - name: Analyze with CodeQL
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: /language:cpp

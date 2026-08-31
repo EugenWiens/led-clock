@@ -1,6 +1,7 @@
 # ESP32-C6 WS2812 LED Clock
 
 [![CI](https://github.com/EugenWiens/led-clock/actions/workflows/ci.yml/badge.svg)](https://github.com/EugenWiens/led-clock/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/EugenWiens/led-clock/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/EugenWiens/led-clock/actions/workflows/codeql.yml)
 [![CodeFactor](https://www.codefactor.io/repository/github/EugenWiens/led-clock/badge)](https://www.codefactor.io/repository/github/EugenWiens/led-clock)
 
 An ESP32-C6-based LED matrix clock displaying time and ambient temperature.
