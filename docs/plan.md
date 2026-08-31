@@ -72,10 +72,15 @@ led_clock/
 - [ ] WiFi reconnect on connection loss
 
 ### Phase 5: SwitchBot BLE (src/ble/) — parallel to Phase 4
-- [ ] Passive BLE scan, callback on advertisement
-- [ ] Filter by configured MAC (SWITCHBOT_MAC in config.h)
-- [ ] Parse temperature/humidity from manufacturer data
-- [ ] Cache result in global struct with timestamp for staleness check
+- [x] Enable NimBLE in `sdkconfig.esp32-c6-devkitm-1` (`CONFIG_BT_ENABLED`, `CONFIG_BT_NIMBLE_ENABLED`, `CONFIG_BT_NIMBLE_ROLE_OBSERVER`)
+- [x] `struct SwitchBotData { float tempC; uint8_t humidity; uint64_t lastSeenMs; bool valid; }`
+- [x] `parseSwitchBotServiceData(data, len, out)` — pure function, decodes UUID-0xFD3D service-data payload
+- [x] `isSwitchBotStale(data, nowMs)` — pure staleness check against `SENSOR_STALE_MS`
+- [x] Unit tests: `test/test_ble/test_switchbot.cpp` (15 test cases — length guards, temperature, humidity, staleness)
+- [x] `switchbotBegin()` — NimBLE passive scan via `nimble_port_freertos_init()`; MAC filtered by `SWITCHBOT_MAC`; ad-data parsed for service UUID 0xFD3D
+- [x] `switchbotGetData(out)` — thread-safe read via `portMUX_TYPE` critical section; staleness applied on read
+- [x] `switchbotBegin()` called from `app_main()` before main loop
+- [ ] Verify byte offsets against physical SwitchBot Meter device (serial log `tempC` + `humidity`)
 
 ### Phase 6: Display Logic (src/main.cpp)
 - [ ] State machine: SHOW_CLOCK / SHOW_TEMP

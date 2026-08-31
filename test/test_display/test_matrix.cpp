@@ -16,7 +16,7 @@ class StubAdcHal final : public IAdcHal {
 public:
     int value{2048};
     void init() override {}
-    int  read() override { return value; }
+    int read() override { return value; }
 };
 
 // ---------------------------------------------------------------------------
@@ -24,13 +24,13 @@ public:
 // ---------------------------------------------------------------------------
 static StubLedHal g_ledHal;
 static StubAdcHal g_adcHal;
-static Matrix     g_matrix{g_ledHal, g_adcHal};
+static Matrix g_matrix{g_ledHal, g_adcHal};
 
 static constexpr CRGB RED{255, 0, 0};
 
 void setUp() {
     g_ledHal.brightness = 128;
-    g_adcHal.value      = 2048;
+    g_adcHal.value = 2048;
     g_matrix.init(); // resets all internal state and clears the LED buffer
 }
 
@@ -105,7 +105,7 @@ void test_clear_zeroes_all_leds() {
 // LDR brightness — time gating
 // ---------------------------------------------------------------------------
 void test_brightness_not_updated_before_sample_interval() {
-    g_adcHal.value      = 0;   // would produce BRIGHTNESS_MIN if sampled
+    g_adcHal.value = 0;        // would produce BRIGHTNESS_MIN if sampled
     g_ledHal.brightness = 128; // sentinel
     g_matrix.updateBrightness(0);
     g_matrix.updateBrightness(499);
@@ -117,8 +117,11 @@ void test_brightness_not_updated_before_sample_interval() {
 // ---------------------------------------------------------------------------
 static void feed_ldr_samples(int adc, uint8_t n) {
     g_adcHal.value = adc;
-    uint64_t t     = 0;
-    for (uint8_t i = 0; i < n; ++i) { t += 500; g_matrix.updateBrightness(t); }
+    uint64_t t = 0;
+    for (uint8_t i = 0; i < n; ++i) {
+        t += 500;
+        g_matrix.updateBrightness(t);
+    }
 }
 
 void test_brightness_min_at_adc_zero() {
@@ -140,10 +143,16 @@ void test_brightness_midpoint_at_adc_half() {
 void test_rolling_average_converges_from_mixed_samples() {
     // First 4 at 0, then 4 at 4095 — rolling avg ≈ 2048 → ~132
     g_adcHal.value = 0;
-    uint64_t t     = 0;
-    for (uint8_t i = 0; i < 4; ++i) { t += 500; g_matrix.updateBrightness(t); }
+    uint64_t t = 0;
+    for (uint8_t i = 0; i < 4; ++i) {
+        t += 500;
+        g_matrix.updateBrightness(t);
+    }
     g_adcHal.value = 4095;
-    for (uint8_t i = 0; i < 4; ++i) { t += 500; g_matrix.updateBrightness(t); }
+    for (uint8_t i = 0; i < 4; ++i) {
+        t += 500;
+        g_matrix.updateBrightness(t);
+    }
     TEST_ASSERT_INT_WITHIN(2, 132, g_ledHal.brightness);
 }
 

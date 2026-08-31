@@ -6,11 +6,11 @@ AccessModifierOffset: -4
 PointerAlignment: Left
 SortIncludes: Never
 AlignConsecutiveAssignments:
-  Enabled: true
+  Enabled: false
   AcrossEmptyLines: false
   AcrossComments: false
 AlignConsecutiveDeclarations:
-  Enabled: true
+  Enabled: false
   AcrossEmptyLines: false
   AcrossComments: false
 AlignTrailingComments:
@@ -21,3 +21,5 @@ AllowShortIfStatementsOnASingleLine: WithoutElse
 AllowShortLoopsOnASingleLine: false
 BreakBeforeBraces: Attach
 SpaceBeforeParens: ControlStatements
+SpaceBeforeCpp11BracedList: false
+SpaceInEmptyBraces: Never

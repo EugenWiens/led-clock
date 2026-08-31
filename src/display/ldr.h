@@ -24,8 +24,8 @@ private:
     IAdcHal& m_adcHal;
 
     uint64_t m_lastSampleMs{0};
-    int      m_samples[LDR_SAMPLES]{};
-    uint8_t  m_sampleIdx{0};
-    bool     m_bufferFull{false};
-    uint8_t  m_brightness{static_cast<uint8_t>(BRIGHTNESS_MIN)};
+    int m_samples[LDR_SAMPLES]{};
+    uint8_t m_sampleIdx{0};
+    bool m_bufferFull{false};
+    uint8_t m_brightness{static_cast<uint8_t>(BRIGHTNESS_MIN)};
 };

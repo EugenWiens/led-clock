@@ -16,13 +16,13 @@ public:
 class StubAdcHal final : public IAdcHal {
 public:
     void init() override {}
-    int  read() override { return 2048; }
+    int read() override { return 2048; }
 };
 
 static StubLedHal g_ledHal;
 static StubAdcHal g_adcHal;
-static Matrix     g_matrix{g_ledHal, g_adcHal};
-static Renderer   g_renderer{g_matrix};
+static Matrix g_matrix{g_ledHal, g_adcHal};
+static Renderer g_renderer{g_matrix};
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -32,8 +32,8 @@ static Renderer   g_renderer{g_matrix};
 static uint8_t readGlyphRow(uint8_t matrixIdx, uint8_t row) {
     uint8_t bits = 0;
     for (uint8_t c = 0u; c < 5u; ++c) {
-        const CRGB led = g_matrix.getLed(
-            static_cast<uint16_t>(matrixIdx * 64u + row * 8u + c + 1u));
+        const CRGB led =
+            g_matrix.getLed(static_cast<uint16_t>(matrixIdx * 64u + row * 8u + c + 1u));
         if (led.r > 0 || led.g > 0 || led.b > 0) {
             bits |= static_cast<uint8_t>(1u << (4u - c));
         }
@@ -50,7 +50,9 @@ static bool matrixBlank(uint8_t matrixIdx) {
     return true;
 }
 
-void setUp()    { g_matrix.init(); }
+void setUp() {
+    g_matrix.init();
+}
 void tearDown() {}
 
 // ---------------------------------------------------------------------------
@@ -110,9 +112,9 @@ void test_renderClock_colon_off_matrix2_is_blank() {
 // ---------------------------------------------------------------------------
 void test_renderTemp_two_digit_integer_part() {
     g_renderer.renderTemp(23.5f);
-    TEST_ASSERT_EQUAL_HEX8(font::FONT[2][0],              readGlyphRow(0, 0)); // '2'
-    TEST_ASSERT_EQUAL_HEX8(font::FONT[3][0],              readGlyphRow(1, 0)); // '3'
-    TEST_ASSERT_EQUAL_HEX8(font::FONT[5][0],              readGlyphRow(3, 0)); // '5'
+    TEST_ASSERT_EQUAL_HEX8(font::FONT[2][0], readGlyphRow(0, 0));                // '2'
+    TEST_ASSERT_EQUAL_HEX8(font::FONT[3][0], readGlyphRow(1, 0));                // '3'
+    TEST_ASSERT_EQUAL_HEX8(font::FONT[5][0], readGlyphRow(3, 0));                // '5'
     TEST_ASSERT_EQUAL_HEX8(font::FONT[font::IDX_DEGREE][0], readGlyphRow(4, 0)); // '°'
 }
 
@@ -139,8 +141,8 @@ void test_renderTemp_negative_shows_dash_and_digit() {
     g_renderer.renderTemp(-3.7f);
     // Row 3 is the only non-zero row of the '-' glyph
     TEST_ASSERT_EQUAL_HEX8(font::FONT[font::IDX_DASH][3], readGlyphRow(0, 3)); // '-'
-    TEST_ASSERT_EQUAL_HEX8(font::FONT[3][0],              readGlyphRow(1, 0)); // '3'
-    TEST_ASSERT_EQUAL_HEX8(font::FONT[7][0],              readGlyphRow(3, 0)); // '7'
+    TEST_ASSERT_EQUAL_HEX8(font::FONT[3][0], readGlyphRow(1, 0));              // '3'
+    TEST_ASSERT_EQUAL_HEX8(font::FONT[7][0], readGlyphRow(3, 0));              // '7'
 }
 
 // ---------------------------------------------------------------------------
@@ -148,9 +150,9 @@ void test_renderTemp_negative_shows_dash_and_digit() {
 // ---------------------------------------------------------------------------
 void test_renderTemp_nan_shows_fallback() {
     g_renderer.renderTemp(std::numeric_limits<float>::quiet_NaN());
-    TEST_ASSERT_EQUAL_HEX8(font::FONT[font::IDX_DASH][3],   readGlyphRow(0, 3)); // '-'
-    TEST_ASSERT_EQUAL_HEX8(font::FONT[font::IDX_DASH][3],   readGlyphRow(1, 3)); // '-'
-    TEST_ASSERT_EQUAL_HEX8(font::FONT[font::IDX_DASH][3],   readGlyphRow(3, 3)); // '-'
+    TEST_ASSERT_EQUAL_HEX8(font::FONT[font::IDX_DASH][3], readGlyphRow(0, 3));   // '-'
+    TEST_ASSERT_EQUAL_HEX8(font::FONT[font::IDX_DASH][3], readGlyphRow(1, 3));   // '-'
+    TEST_ASSERT_EQUAL_HEX8(font::FONT[font::IDX_DASH][3], readGlyphRow(3, 3));   // '-'
     TEST_ASSERT_EQUAL_HEX8(font::FONT[font::IDX_DEGREE][0], readGlyphRow(4, 0)); // '°'
 }
 

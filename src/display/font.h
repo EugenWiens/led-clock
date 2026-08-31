@@ -9,11 +9,11 @@ namespace font {
 
 constexpr uint8_t GLYPH_COLS = 5u;
 constexpr uint8_t GLYPH_ROWS = 7u;
-constexpr uint8_t COUNT      = 13u;
+constexpr uint8_t COUNT = 13u;
 
 /// Glyph indices.
-constexpr uint8_t IDX_COLON  = 10u; ///< ':'
-constexpr uint8_t IDX_DASH   = 11u; ///< '-'
+constexpr uint8_t IDX_COLON = 10u;  ///< ':'
+constexpr uint8_t IDX_DASH = 11u;   ///< '-'
 constexpr uint8_t IDX_DEGREE = 12u; ///< '°'
 
 /// FONT[fontIdx][row] — indices 0–9 = digits, 10 = ':', 11 = '-', 12 = '°'.
