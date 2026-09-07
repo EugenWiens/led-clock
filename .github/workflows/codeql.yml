@@ -46,7 +46,7 @@ jobs:
         run: printf '[private_credentials]\nbuild_flags =\n' > platformio_user.ini
 
       - name: Build native sources for CodeQL
-        run: pio run -e native
+        run: pio test -e native
 
       - name: Analyze with CodeQL
         uses: github/codeql-action/analyze@v3
