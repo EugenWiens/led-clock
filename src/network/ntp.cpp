@@ -246,7 +246,7 @@ bool waitForWifi(uint32_t timeoutMs) {
 
 } // namespace
 
-bool ntpBegin() {
+bool Ntp::init() {
 	if (!initWifi() || !configTzTime() || !waitForWifi(WIFI_CONNECT_TIMEOUT_MS)) {
 		ESP_LOGW(TAG, "WiFi connection unavailable; NTP sync deferred");
 		return false;
@@ -266,11 +266,11 @@ bool ntpBegin() {
 	return synchronized;
 }
 
-bool ntpGetTime(struct tm& timeInfo) {
+bool Ntp::getTime(struct tm& timeInfo) {
 	return getLocalTime(timeInfo, 0);
 }
 
-void ntpMaintain() {
+void Ntp::maintain() {
 	if (!s_wifiInitialized) {
 		return;
 	}

@@ -9,39 +9,27 @@ C++ interfaces, enabling host-side unit testing without a physical device.
 ```
 ┌──────────────────────────────────────────────────────────────────┐
 │                          main.cpp                                │
-│  app_main(): creates static HAL + Matrix instances, runs loop    │
-│  State machine: SHOW_CLOCK ↔ SHOW_TEMP                           │
-└───────┬──────────┬───────────────┬────────────────┬─────────────┘
-        │          │               │                │
-        ▼          ▼               ▼                ▼
-  ┌──────────┐ ┌────────┐ ┌────────────┐   ┌───────────────────┐
-  │ Renderer │ │  Ntp   │ │ SwitchBot  │   │      Matrix       │
-  │ (Phase3) │ │(Phase4)│ │  (Phase5)  │   │ Matrix(ILedHal&,  │
-  └────┬─────┘ └────────┘ └────────────┘   │         IAdcHal&) │
-       │                                   │  owns: Ldr m_ldr  │
-       └───────────────────────────────────│  owns: CRGB[320]  │
-              uses font.h                  └────────┬──────────┘
-                                                    │
-                           ┌────────────────────────┘
-                           │
-              ┌────────────▼────────────┐
-              │          Ldr            │
-              │  Ldr(IAdcHal&)          │
-              │  rolling avg → brightness│
-              └────────────┬────────────┘
-                           │
-          ┌────────────────┴────────────────┐
-          ▼                                 ▼
-   ┌─────────────┐                  ┌─────────────┐
-   │  ILedHal    │                  │  IAdcHal    │
-   │  (abstract) │                  │  (abstract) │
-   └──────┬──────┘                  └──────┬──────┘
-          │ device                         │ device
-   ┌──────▼──────┐                  ┌──────▼──────┐
-   │EspLedStrip  │                  │ EspAdcHal   │
-   │   Hal       │                  │ adc_oneshot │
-   │ESP-IDF RMT  │                  │  GPIO2      │
-   └─────────────┘                  └─────────────┘
+│  creates and initializes all concrete components, runs the loop   │
+└───────┬──────────────┬──────────────┬───────────────┬───────────┘
+   │              │              │               │
+   ▼              ▼              ▼               ▼
+ ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌───────────────┐
+ │ Bluetooth  │  │ SwitchBot  │  │    Ntp     │  │    Display    │
+ │ raw BLE    │◄─│ MAC/filter │  │ WiFi/time  │◄─│ state/render  │
+ │ scanning   │  │ + parsing  │  │ sync       │  │ Matrix + Ldr  │
+ └────────────┘  └────────────┘  └────────────┘  └───────┬───────┘
+                 │
+               ┌───────────┴───────────┐
+               ▼                       ▼
+             ┌────────────┐          ┌──────────┐
+             │  Renderer  │          │ Matrix   │
+             └────────────┘          └────┬─────┘
+                     │
+                  ┌────────────┴───────────┐
+                  ▼                        ▼
+                ┌────────────┐            ┌──────────┐
+                │  ILedHal   │            │ IAdcHal  │
+                └────────────┘            └──────────┘
 ```
 
 ## Module Descriptions
@@ -52,6 +40,21 @@ User-specific settings (`WIFI_SSID`, `WIFI_PASS`, `SWITCHBOT_MAC`, `NTP_SERVER`,
 `TIMEZONE`) are injected as `-D` build flags via `[private_credentials]` in
 `platformio_user.ini`. A `#error` directive fires at compile time if any of these
 is missing in a device build (`NATIVE_ENV` suppresses the check for host tests).
+
+### `src/display/display.h/.cpp`
+`Display` is the application-facing display facade. It owns the `Matrix` and
+`Renderer`, and runs the display state machine. `Ntp` and `SwitchBot` are
+injected dependencies; `Display` reads their data but does not initialize or
+maintain them. `update()` refreshes the clock or temperature, applies automatic
+brightness, and sends the current frame to the LED strip.
+
+### `src/ble/bluetooth.h/.cpp`
+`Bluetooth` owns the NimBLE passive scanner and emits raw advertisements through
+a callback. It has no knowledge of SwitchBot payloads or display behavior.
+
+### `src/ble/switchbot.h/.cpp`
+`SwitchBot` registers with `Bluetooth`, filters the configured MAC address,
+parses UUID-0xFD3D service data, and exposes the latest thread-safe reading.
 
 ### `src/hal/led_hal.h/.cpp`
 Abstract LED hardware interface.
@@ -167,30 +170,22 @@ Matrix 0 is blank for single-digit temperatures. Colours:
 - `TEMP_COLOR`  = cyan  `{0, 200, 255}`
 
 ### `src/network/ntp.h/.cpp`
-- `ntpBegin()` — connects WiFi, configures SNTP via `esp_sntp_*`, sets timezone
+- `Ntp::init()` — connects WiFi, configures SNTP via `esp_sntp_*`, sets timezone
   via `setenv("TZ", ...)` + `tzset()`, blocks until sync (max 30 s) or returns `false`
-- `ntpGetTime(struct tm &t)` — fills `t` via `localtime_r()`; returns `false` if not synced
-- `ntpMaintain()` — called from main loop; reconnects WiFi + re-syncs if lost
-
-### `src/ble/switchbot.h/.cpp`
-- `switchbotBegin()` — initialises BLEDevice, sets up continuous passive scan
-  with a callback
-- Callback filters by MAC (`SWITCHBOT_MAC`), parses manufacturer data byte
-  offsets for temperature (°C, 0.1 resolution) and relative humidity (%)
-- Results stored in a `SwitchBotData` struct with a `lastSeen` timestamp
-- `switchbotGetData(SwitchBotData &out)` — returns cached data; `out.valid`
-  is `false` if data is older than `BLE_STALE_THRESHOLD_S`
+- `Ntp::getTime(struct tm &t)` — fills `t` via `localtime_r()`; returns `false` if not synced
+- `Ntp::maintain()` — called from main loop; reconnects WiFi + re-syncs if lost
 
 ### `src/main.cpp`
-ESP-IDF entry point `app_main()`. Creates HAL and `Matrix` as `static` locals
-(BSS segment, not task stack) to avoid stack overflow with the 960-byte LED buffer:
+ESP-IDF entry point `app_main()`. Creates all concrete components as `static`
+locals (BSS segment, not task stack) and controls their initialization order:
 
 ```cpp
 static EspLedStripHal s_ledHal;
 static EspAdcHal      s_adcHal;
-static Matrix         s_matrix{s_ledHal, s_adcHal};
-static Renderer       s_renderer{s_matrix};
-s_matrix.init();
+static Bluetooth      s_bluetooth;
+static SwitchBot      s_switchBot{s_bluetooth};
+static Ntp            s_ntp;
+static Display        s_display{s_ledHal, s_adcHal, s_ntp, s_switchBot};
 ```
 
 Followed by a FreeRTOS loop (`vTaskDelay(pdMS_TO_TICKS(33))`). Timing uses
@@ -263,7 +258,7 @@ Build filter for native env: `build_src_filter = -<*> +<display/matrix.cpp> +<di
 | Temp→Clock switch | `TEMP_DISPLAY_MS` (default 5 s) | `ms_now()` delta in main loop |
 | LDR read | 500 ms | `Ldr::update()` throttled by `ms_now()` delta |
 | BLE scan | continuous | ESP32 BLE stack background task |
-| NTP maintain | on WiFi reconnect | checked in main loop via `ntpMaintain()` |
+| NTP maintain | on WiFi reconnect | checked in main loop via `Ntp::maintain()` |
 
 ## Build Configuration
 

@@ -53,16 +53,18 @@ See [docs/circuit.md](docs/circuit.md) for the full ASCII schematic.
 led_clock/
 ├── platformio.ini          PlatformIO build config
 ├── src/
-│   ├── main.cpp            Main loop, display state machine
+│   ├── main.cpp            Component aggregation and main loop
 │   ├── config.h            All user-configurable settings
 │   ├── display/
+│   │   ├── display.h/.cpp  Display facade and state machine
 │   │   ├── matrix.h/.cpp   FastLED driver + coordinate mapping
 │   │   ├── font.h          5×7 bitmap font (digits + colon)
 │   │   └── renderer.h/.cpp Clock/temperature rendering
 │   ├── network/
 │   │   └── ntp.h/.cpp      WiFi connection + NTP sync
 │   └── ble/
-│       └── switchbot.h/.cpp BLE scanner + SwitchBot parser
+│       ├── bluetooth.h/.cpp Generic passive BLE scanner
+│       └── switchbot.h/.cpp SwitchBot filter, parser, and data store
 ├── docs/
 │   ├── requirements.md     Functional and non-functional requirements
 │   ├── sw_design.md        Software architecture and design

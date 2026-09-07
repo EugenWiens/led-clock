@@ -3,11 +3,11 @@
 // ---------------------------------------------------------------------------
 // LED matrix
 // ---------------------------------------------------------------------------
-#define LED_DATA_PIN 8 // GPIO8 → 74HCT125 level-shifter → Matrix 0 DIN
-#define LED_COUNT 320  // 5 matrices × 64 LEDs each
+#define LED_DATA_PIN 8 // GPIO8 -> 74HCT125 level-shifter -> Matrix 0 DIN
+#define LED_COUNT 320  // 5 matrices x 64 LEDs each
 
 // ---------------------------------------------------------------------------
-// LDR (ambient light sensor — GPIO2 = ADC_UNIT_1 / ADC_CHANNEL_2)
+// LDR (ambient light sensor - GPIO2 = ADC_UNIT_1 / ADC_CHANNEL_2)
 // ---------------------------------------------------------------------------
 #define LDR_SAMPLE_MS 500u // sample interval (ms)
 #define LDR_SAMPLES 8u     // rolling-average window size
@@ -74,4 +74,6 @@
 // ---------------------------------------------------------------------------
 #define CLOCK_DISPLAY_MS 10000UL // ms to show clock before switching to temp
 #define TEMP_DISPLAY_MS 5000UL   // ms to show temp before reverting to clock
+#define COLON_TOGGLE_MS 1000UL   // colon blink interval (ms)
+
 #define SENSOR_STALE_MS 300000UL // BLE data older than this → "--.-" fallback

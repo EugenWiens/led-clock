@@ -25,13 +25,15 @@ led_clock/
 │   ├── main.cpp
 │   ├── config.h                  WiFi credentials, pins, timezone, SwitchBot MAC
 │   ├── display/
+│   │   ├── display.h/.cpp        Display facade, initialization, and state machine
 │   │   ├── matrix.h/.cpp         FastLED wrapper + coordinate mapping
 │   │   ├── font.h                5x7 bitmap data
 │   │   └── renderer.h/.cpp       Clock/temperature rendering
 │   ├── network/
 │   │   └── ntp.h/.cpp            WiFi + NTP sync
 │   └── ble/
-│       └── switchbot.h/.cpp      BLE scanner + parser
+│       ├── bluetooth.h/.cpp       Generic passive BLE scanner
+│       └── switchbot.h/.cpp       SwitchBot filter, parser, and data store
 ├── docs/
 │   ├── plan.md                   Project plan (this file)
 │   ├── circuit.md                ASCII circuit schematic
@@ -77,16 +79,16 @@ led_clock/
 - [x] `parseSwitchBotServiceData(data, len, out)` — pure function, decodes UUID-0xFD3D service-data payload
 - [x] `isSwitchBotStale(data, nowMs)` — pure staleness check against `SENSOR_STALE_MS`
 - [x] Unit tests: `test/test_ble/test_switchbot.cpp` (15 test cases — length guards, temperature, humidity, staleness)
-- [x] `switchbotBegin()` — NimBLE passive scan via `nimble_port_freertos_init()`; MAC filtered by `SWITCHBOT_MAC`; ad-data parsed for service UUID 0xFD3D
-- [x] `switchbotGetData(out)` — thread-safe read via `portMUX_TYPE` critical section; staleness applied on read
-- [x] `switchbotBegin()` called from `app_main()` before main loop
+- [x] `Bluetooth` — NimBLE passive scan via `nimble_port_freertos_init()` and raw advertisement callback
+- [x] `SwitchBot` — MAC filter, UUID-0xFD3D parser, thread-safe data store, and staleness check
+- [x] `Bluetooth`, `SwitchBot`, `Ntp`, and `Display` are constructed and initialized in `main.cpp`
 - [ ] Verify byte offsets against physical SwitchBot Meter device (serial log `tempC` + `humidity`)
 
-### Phase 6: Display Logic (src/main.cpp)
-- [ ] State machine: SHOW_CLOCK / SHOW_TEMP
-- [ ] Configurable switch interval (default: 5s temperature, then back to clock)
-- [ ] Colon toggle every second
-- [ ] Fallback "--.-" when BLE data is older than 5 minutes
+### Phase 6: Display Logic (src/display/)
+- [x] State machine: SHOW_CLOCK / SHOW_TEMP
+- [x] Configurable switch interval (default: 5s temperature, then back to clock)
+- [x] Colon toggle every second
+- [x] Fallback "--.-" when BLE data is older than 5 minutes
 
 ### Phase 7: Circuit Diagram (docs/circuit.md)
 - [ ] ASCII schematic: ESP32-C6 GPIO8 → 330Ω → 74HCT125 → Matrix 0 DIN

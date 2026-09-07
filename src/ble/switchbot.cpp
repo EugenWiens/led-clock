@@ -33,31 +33,17 @@ bool isSwitchBotStale(const SwitchBotData& d, uint64_t nowMs) {
 }
 
 // ===========================================================================
-// Device BLE implementation — excluded from native test environment
+// SwitchBot device implementation — excluded from native test environment
 // ===========================================================================
 #ifndef NATIVE_ENV
 
 #include "esp_timer.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "nimble/nimble_port.h"
-#include "nimble/nimble_port_freertos.h"
-#include "host/ble_hs.h"
-#include "host/ble_gap.h"
-
-// ---------------------------------------------------------------------------
-// Shared state (written from NimBLE task, read from app_main task)
-// ---------------------------------------------------------------------------
-static SwitchBotData s_data{};
-static portMUX_TYPE s_mux = portMUX_INITIALIZER_UNLOCKED;
-
-// Parsed target MAC (little-endian, as stored in ble_addr_t.val[])
-static uint8_t s_targetMac[6]{};
-static bool s_macParsed{false};
 
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
+
+namespace {
 
 /// Parse "aa:bb:cc:dd:ee:ff" into val[0..5] stored in reversed byte order
 /// (BLE address little-endian convention: val[0] = least-significant octet).
@@ -72,23 +58,19 @@ static bool parseMacString(const char* str, uint8_t val[6]) {
     return true;
 }
 
-static bool macMatches(const ble_addr_t& addr) {
-    return (std::memcmp(addr.val, s_targetMac, 6) == 0);
-}
-
 /// Walk raw advertisement data looking for service-data AD type (0x16)
 /// with UUID 0xFD3D. Returns a pointer to the payload bytes (after UUID)
 /// and sets *payloadLen on success; returns nullptr on failure.
-static const uint8_t* findServiceData(const uint8_t* adData, uint8_t adLen, uint8_t* payloadLen) {
+static const uint8_t* findServiceData(const uint8_t* adData, size_t adLen, size_t* payloadLen) {
     const uint8_t* p = adData;
     const uint8_t* end = adData + adLen;
 
     while (p < end) {
-        uint8_t fieldLen = p[0];
+        const size_t fieldLen = p[0];
         if (fieldLen == 0u || p + 1u + fieldLen > end) {
             break;
         }
-        uint8_t fieldType = p[1];
+        const uint8_t fieldType = p[1];
         // AD type 0x16 = Service Data — 16-bit UUID
         if (fieldType == 0x16u && fieldLen >= 3u) {
             // UUID is little-endian: FD3D → bytes 0x3D, 0xFD
@@ -103,78 +85,47 @@ static const uint8_t* findServiceData(const uint8_t* adData, uint8_t adLen, uint
     return nullptr;
 }
 
-// ---------------------------------------------------------------------------
-// NimBLE callbacks
-// ---------------------------------------------------------------------------
+} // namespace
 
-static int gapEventCb(struct ble_gap_event* event, void* /*arg*/) {
-    if (event->type != BLE_GAP_EVENT_DISC) {
-        return 0;
+SwitchBot::SwitchBot(Bluetooth& bluetooth) : m_bluetooth{bluetooth} {}
+
+void SwitchBot::init() {
+    m_macParsed = parseMacString(SWITCHBOT_MAC, m_targetMac);
+    m_bluetooth.setAdvertisementHandler(&SwitchBot::advertisementHandler, this);
+}
+
+void SwitchBot::advertisementHandler(const BluetoothAdvertisement& advertisement, void* context) {
+    auto* switchBot = static_cast<SwitchBot*>(context);
+    if (switchBot != nullptr) {
+        switchBot->handleAdvertisement(advertisement);
+    }
+}
+
+void SwitchBot::handleAdvertisement(const BluetoothAdvertisement& advertisement) {
+    if (!m_macParsed || std::memcmp(advertisement.address, m_targetMac, sizeof(m_targetMac)) != 0) {
+        return;
     }
 
-    const struct ble_gap_disc_desc& desc = event->disc;
-
-    if (!macMatches(desc.addr)) {
-        return 0;
-    }
-
-    uint8_t payloadLen = 0;
+    size_t payloadLength = 0;
     const uint8_t* payload =
-        findServiceData(desc.data, static_cast<uint8_t>(desc.length_data), &payloadLen);
+        findServiceData(advertisement.data, advertisement.dataLength, &payloadLength);
     if (payload == nullptr) {
-        return 0;
+        return;
     }
 
     SwitchBotData parsed{};
-    parsed.lastSeenMs = static_cast<uint64_t>(esp_timer_get_time() / 1000);
-    if (parseSwitchBotServiceData(payload, payloadLen, parsed)) {
-        portENTER_CRITICAL(&s_mux);
-        s_data = parsed;
-        portEXIT_CRITICAL(&s_mux);
+    parsed.lastSeenMs = advertisement.timestampMs;
+    if (parseSwitchBotServiceData(payload, payloadLength, parsed)) {
+        portENTER_CRITICAL(&m_mux);
+        m_data = parsed;
+        portEXIT_CRITICAL(&m_mux);
     }
-    return 0;
 }
 
-static void onSync() {
-    struct ble_gap_disc_params dp{};
-    dp.passive = 1;           // No scan requests — purely listen
-    dp.filter_duplicates = 0; // Accept repeated packets for continuous updates
-    dp.itvl = 0;              // Default: 625 µs units × 16 = 10 ms
-    dp.window = 0;            // Default: 625 µs units × 16 = 10 ms
-    dp.filter_policy = 0;     // Accept all advertisers
-    dp.limited = 0;           // General discovery
-
-    ble_gap_disc(BLE_OWN_ADDR_PUBLIC, BLE_HS_FOREVER, &dp, gapEventCb, nullptr);
-}
-
-static void onReset(int reason) {
-    (void)reason;
-    // NimBLE stack reset — scan will be restarted on next onSync()
-}
-
-static void nimbleHostTask(void* /*param*/) {
-    nimble_port_run();
-    nimble_port_freertos_deinit();
-}
-
-// ---------------------------------------------------------------------------
-// Public device API
-// ---------------------------------------------------------------------------
-
-void switchbotBegin() {
-    s_macParsed = parseMacString(SWITCHBOT_MAC, s_targetMac);
-
-    nimble_port_init();
-    ble_hs_cfg.sync_cb = onSync;
-    ble_hs_cfg.reset_cb = onReset;
-
-    nimble_port_freertos_init(nimbleHostTask);
-}
-
-bool switchbotGetData(SwitchBotData& out) {
-    portENTER_CRITICAL(&s_mux);
-    out = s_data;
-    portEXIT_CRITICAL(&s_mux);
+bool SwitchBot::getData(SwitchBotData& out) {
+    portENTER_CRITICAL(&m_mux);
+    out = m_data;
+    portEXIT_CRITICAL(&m_mux);
 
     if (out.valid) {
         const uint64_t nowMs = static_cast<uint64_t>(esp_timer_get_time() / 1000);
@@ -183,6 +134,17 @@ bool switchbotGetData(SwitchBotData& out) {
         }
     }
     return out.valid;
+}
+
+#else
+
+SwitchBot::SwitchBot(Bluetooth& bluetooth) : m_bluetooth{bluetooth} {}
+
+void SwitchBot::init() {}
+
+bool SwitchBot::getData(SwitchBotData& out) {
+    out = {};
+    return false;
 }
 
 #endif // !NATIVE_ENV

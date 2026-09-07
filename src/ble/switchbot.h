@@ -2,6 +2,12 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "bluetooth.h"
+
+#ifndef NATIVE_ENV
+#include "freertos/FreeRTOS.h"
+#endif
+
 // ---------------------------------------------------------------------------
 // Data — no hardware dependency; safe in native test environment
 // ---------------------------------------------------------------------------
@@ -26,16 +32,27 @@ struct SwitchBotData {
 /// @return true if @p d.lastSeenMs is more than SENSOR_STALE_MS ms before @p nowMs.
 [[nodiscard]] bool isSwitchBotStale(const SwitchBotData& d, uint64_t nowMs);
 
-// ---------------------------------------------------------------------------
-// Device API — compiled only in firmware builds; excluded via build_src_filter
-// on the native test environment.
-// ---------------------------------------------------------------------------
+class SwitchBot {
+public:
+    explicit SwitchBot(Bluetooth& bluetooth);
 
-/// Initialise NimBLE, begin passive scanning, launch the NimBLE host task.
-/// Must be called once from app_main() before the display loop.
-void switchbotBegin();
+    /// Register the SwitchBot advertisement handler with the Bluetooth scanner.
+    void init();
 
-/// Thread-safe read of the latest decoded SwitchBot data.
-/// Sets out.valid = false if no data has ever arrived or if the data is stale.
-/// @return true when out.valid is true.
-bool switchbotGetData(SwitchBotData& out);
+    /// Thread-safe read of the latest decoded SwitchBot data.
+    /// Sets out.valid = false if no data has ever arrived or if the data is stale.
+    [[nodiscard]] bool getData(SwitchBotData& out);
+
+private:
+    static void advertisementHandler(const BluetoothAdvertisement& advertisement, void* context);
+    void handleAdvertisement(const BluetoothAdvertisement& advertisement);
+
+    Bluetooth& m_bluetooth;
+    uint8_t m_targetMac[6]{};
+    bool m_macParsed{false};
+    SwitchBotData m_data{};
+
+#ifndef NATIVE_ENV
+    portMUX_TYPE m_mux = portMUX_INITIALIZER_UNLOCKED;
+#endif
+};
