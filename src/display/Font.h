@@ -11,6 +11,8 @@
 /// Renderers apply a col_offset of +1 to centre the 5-wide glyph in the 8-wide matrix cell.
 class Font final {
 public:
+    Font() = delete;
+
     static constexpr uint8_t GLYPH_COLS = 5u;
     static constexpr uint8_t GLYPH_ROWS = 7u;
     static constexpr uint8_t COUNT = 13u;
@@ -49,7 +51,4 @@ public:
         // '°' .XX.. X..X. X..X. .XX.. ..... ..... .....
         {0x0C, 0x12, 0x12, 0x0C, 0x00, 0x00, 0x00},
     };
-
-private:
-    Font() = delete;
 };

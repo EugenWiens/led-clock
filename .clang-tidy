@@ -17,6 +17,7 @@ Checks: >
   -readability-braces-around-statements,
   -readability-implicit-bool-conversion,
   -readability-function-cognitive-complexity,
+  -readability-convert-member-functions-to-static,
   -bugprone-easily-swappable-parameters
 
 WarningsAsErrors: "*"
