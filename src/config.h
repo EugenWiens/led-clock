@@ -1,13 +1,16 @@
+// SPDX-FileCopyrightText: 2026 Eugen Wiens
+// SPDX-License-Identifier: MIT
+
 #pragma once
 
 // ---------------------------------------------------------------------------
 // LED matrix
 // ---------------------------------------------------------------------------
-#define LED_DATA_PIN 8 // GPIO8 → 74HCT125 level-shifter → Matrix 0 DIN
-#define LED_COUNT 320  // 5 matrices × 64 LEDs each
+#define LED_DATA_PIN 8 // GPIO8 -> 74HCT125 level-shifter -> Matrix 0 DIN
+#define LED_COUNT 320  // 5 matrices x 64 LEDs each
 
 // ---------------------------------------------------------------------------
-// LDR (ambient light sensor — GPIO2 = ADC_UNIT_1 / ADC_CHANNEL_2)
+// LDR (ambient light sensor - GPIO2 = ADC_UNIT_1 / ADC_CHANNEL_2)
 // ---------------------------------------------------------------------------
 #define LDR_SAMPLE_MS 500u // sample interval (ms)
 #define LDR_SAMPLES 8u     // rolling-average window size
@@ -17,6 +20,12 @@
 // ---------------------------------------------------------------------------
 // NTP / Timezone — must be set in [private_credentials] in platformio_user.ini
 // ---------------------------------------------------------------------------
+#define WIFI_CONNECT_TIMEOUT_MS 30000UL
+#define WIFI_RECONNECT_INTERVAL_MS 1000UL
+#define NTP_SYNC_TIMEOUT_MS 30000UL
+#define NTP_RETRY_INTERVAL_MS 5000UL
+#define NTP_POLL_INTERVAL_MS 100UL
+
 #if !defined(NTP_SERVER) && !defined(NATIVE_ENV)
 #error                                                                                             \
     "NTP_SERVER not set — add '-DNTP_SERVER=\"pool.ntp.org\"' to [private_credentials] in platformio_user.ini"
@@ -68,4 +77,6 @@
 // ---------------------------------------------------------------------------
 #define CLOCK_DISPLAY_MS 10000UL // ms to show clock before switching to temp
 #define TEMP_DISPLAY_MS 5000UL   // ms to show temp before reverting to clock
+#define COLON_TOGGLE_MS 1000UL   // colon blink interval (ms)
+
 #define SENSOR_STALE_MS 300000UL // BLE data older than this → "--.-" fallback

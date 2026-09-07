@@ -1,4 +1,7 @@
-#include "ldr.h"
+// SPDX-FileCopyrightText: 2026 Eugen Wiens
+// SPDX-License-Identifier: MIT
+
+#include "Ldr.h"
 #include <algorithm>
 
 Ldr::Ldr(IAdcHal& adcHal) : m_adcHal{adcHal} {}

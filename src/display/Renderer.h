@@ -1,6 +1,9 @@
+// SPDX-FileCopyrightText: 2026 Eugen Wiens
+// SPDX-License-Identifier: MIT
+
 #pragma once
 #include <cstdint>
-#include "matrix.h"
+#include "Matrix.h"
 
 /// Display colours — defined here as they are a rendering concern.
 inline constexpr CRGB CLOCK_COLOR{255, 120, 0}; // warm amber

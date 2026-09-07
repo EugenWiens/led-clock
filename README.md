@@ -1,6 +1,7 @@
 # ESP32-C6 WS2812 LED Clock
 
 [![CI](https://github.com/EugenWiens/led-clock/actions/workflows/ci.yml/badge.svg)](https://github.com/EugenWiens/led-clock/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/EugenWiens/led-clock/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/EugenWiens/led-clock/actions/workflows/codeql.yml)
 [![CodeFactor](https://www.codefactor.io/repository/github/EugenWiens/led-clock/badge)](https://www.codefactor.io/repository/github/EugenWiens/led-clock)
 
 An ESP32-C6-based LED matrix clock displaying time and ambient temperature.
@@ -52,16 +53,28 @@ See [docs/circuit.md](docs/circuit.md) for the full ASCII schematic.
 led_clock/
 ├── platformio.ini          PlatformIO build config
 ├── src/
-│   ├── main.cpp            Main loop, display state machine
+│   ├── main.cpp            ESP-IDF entry point
+│   ├── Application.h/.cpp  Application composition and main loop
 │   ├── config.h            All user-configurable settings
 │   ├── display/
-│   │   ├── matrix.h/.cpp   FastLED driver + coordinate mapping
-│   │   ├── font.h          5×7 bitmap font (digits + colon)
-│   │   └── renderer.h/.cpp Clock/temperature rendering
+│   │   ├── Display.h/.cpp  Display facade and state machine
+│   │   ├── DisplayState.h  Display state enumeration
+│   │   ├── Matrix.h/.cpp   Matrix buffer + coordinate mapping
+│   │   ├── Font.h          5×7 bitmap font (digits + colon)
+│   │   └── Renderer.h/.cpp Clock/temperature rendering
 │   ├── network/
-│   │   └── ntp.h/.cpp      WiFi connection + NTP sync
+│   │   └── Ntp.h/.cpp      WiFi connection + NTP sync
+│   ├── hal/
+│   │   ├── CRGB.h          RGB pixel value
+│   │   ├── ILedHal.h       LED hardware interface
+│   │   ├── EspLedStripHal.h/.cpp  ESP-IDF RMT LED implementation
+│   │   ├── IAdcHal.h       ADC hardware interface
+│   │   └── EspAdcHal.h/.cpp         ESP-IDF ADC implementation
 │   └── ble/
-│       └── switchbot.h/.cpp BLE scanner + SwitchBot parser
+│       ├── Bluetooth.h/.cpp             Generic passive BLE scanner
+│       ├── BluetoothAdvertisement.h    Advertisement value
+│       ├── SwitchBot.h/.cpp             SwitchBot parser and data store
+│       └── SwitchBotData.h             Sensor reading value
 ├── docs/
 │   ├── requirements.md     Functional and non-functional requirements
 │   ├── sw_design.md        Software architecture and design
@@ -79,7 +92,7 @@ SwitchBot BLE MAC address:
 
 ```cpp
 #define WIFI_SSID        "your-ssid"
-#define WIFI_PASSWORD    "your-password"
+#define WIFI_PASS        "your-password"
 #define TIMEZONE         "CET-1CEST,M3.5.0,M10.5.0/3"   // Germany
 #define SWITCHBOT_MAC    "AA:BB:CC:DD:EE:FF"
 ```
@@ -126,9 +139,8 @@ On first boot the device will:
 
 ## Dependencies
 
-- [FastLED](https://github.com/FastLED/FastLED) — WS2812B LED driver
-- Arduino ESP32 core (via PlatformIO `espressif32` platform)
-- Built-in ESP32 Arduino libraries: `WiFi`, `BLEDevice`, `time.h`
+- ESP-IDF `esp_driver_rmt` — WS2812B LED driver
+- ESP-IDF WiFi, NimBLE, SNTP, ADC and FreeRTOS components
 
 ## License
 

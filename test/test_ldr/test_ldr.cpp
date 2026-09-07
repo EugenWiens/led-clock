@@ -1,15 +1,11 @@
-#include <unity.h>
-#include "../../src/display/ldr.h"
+// SPDX-FileCopyrightText: 2026 Eugen Wiens
+// SPDX-License-Identifier: MIT
 
-// ---------------------------------------------------------------------------
-// ADC stub
-// ---------------------------------------------------------------------------
-class StubAdcHal final : public IAdcHal {
-public:
-    int value{2048};
-    void init() override {}
-    int read() override { return value; }
-};
+#include <unity.h>
+
+#include "display/Ldr.h"
+
+#include "test_support/StubAdcHal.h"
 
 static StubAdcHal g_adc;
 static Ldr g_ldr{g_adc};

@@ -8,7 +8,6 @@
         {
             "name": "PlatformIO",
             "includePath": [
-                "/home/mic/Workspace/led_clock/src",
                 "/home/mic/.platformio/packages/framework-espidf/components/riscv/include",
                 "/home/mic/Workspace/led_clock/.pio/build/esp32-c6-devkitm-1/config",
                 "/home/mic/.platformio/packages/framework-espidf/components/esp_libc/platform_include",
@@ -266,12 +265,14 @@
                 "/home/mic/.platformio/packages/framework-espidf/components/ieee802154/include",
                 "/home/mic/.platformio/packages/framework-espidf/components/rt/include",
                 "/home/mic/.platformio/packages/framework-espidf/components/spiffs/include",
+                "/home/mic/Workspace/led_clock/src",
+                "/home/mic/Workspace/led_clock",
+                "/home/mic/Workspace/led_clock/.pio/libdeps/esp32-c6-devkitm-1/Unity/src",
                 ""
             ],
             "browse": {
                 "limitSymbolsToIncludedHeaders": true,
                 "path": [
-                    "/home/mic/Workspace/led_clock/src",
                     "/home/mic/.platformio/packages/framework-espidf/components/riscv/include",
                     "/home/mic/Workspace/led_clock/.pio/build/esp32-c6-devkitm-1/config",
                     "/home/mic/.platformio/packages/framework-espidf/components/esp_libc/platform_include",
@@ -529,6 +530,9 @@
                     "/home/mic/.platformio/packages/framework-espidf/components/ieee802154/include",
                     "/home/mic/.platformio/packages/framework-espidf/components/rt/include",
                     "/home/mic/.platformio/packages/framework-espidf/components/spiffs/include",
+                    "/home/mic/Workspace/led_clock/src",
+                    "/home/mic/Workspace/led_clock",
+                    "/home/mic/Workspace/led_clock/.pio/libdeps/esp32-c6-devkitm-1/Unity/src",
                     ""
                 ]
             },
@@ -541,12 +545,13 @@
                 "SOC_MMU_PAGE_SIZE=CONFIG_MMU_PAGE_SIZE",
                 "IDF_VER=\"6.0.1\"",
                 "ESP_PLATFORM",
-                "PLATFORMIO=60119",
+                "PLATFORMIO=60200",
                 "WIFI_SSID=\"your_ssid\"",
                 "WIFI_PASS=\"your_password\"",
                 "SWITCHBOT_MAC=\"aa:bb:cc:dd:ee:ff\"",
                 "NTP_SERVER=\"pool.ntp.org\"",
                 "TIMEZONE=\"CET-1CEST,M3.5.0,M10.5.0/3\"",
+                "UNITY_INCLUDE_CONFIG_H",
                 ""
             ],
             "cStandard": "gnu23",

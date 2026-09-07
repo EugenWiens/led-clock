@@ -1,7 +1,12 @@
+// SPDX-FileCopyrightText: 2026 Eugen Wiens
+// SPDX-License-Identifier: MIT
+
 #pragma once
+
 #include <cstdint>
-#include "../hal/adc_hal.h"
-#include "../config.h"
+
+#include "config.h"
+#include "hal/IAdcHal.h"
 
 /// Reads the LDR via ADC, maintains an 8-sample rolling average, and
 /// computes a brightness value in [BRIGHTNESS_MIN, BRIGHTNESS_MAX].

@@ -1,23 +1,12 @@
+// SPDX-FileCopyrightText: 2026 Eugen Wiens
+// SPDX-License-Identifier: MIT
+
 #include <unity.h>
-#include "../../src/display/matrix.h"
 
-// ---------------------------------------------------------------------------
-// HAL stub classes — replace FastLedHal / EspAdcHal in the native test build
-// ---------------------------------------------------------------------------
-class StubLedHal final : public ILedHal {
-public:
-    uint8_t brightness{128};
-    void init(CRGB*, uint16_t) override {}
-    void show() override {}
-    void setBrightness(uint8_t b) override { brightness = b; }
-};
+#include "display/Matrix.h"
 
-class StubAdcHal final : public IAdcHal {
-public:
-    int value{2048};
-    void init() override {}
-    int read() override { return value; }
-};
+#include "test_support/StubAdcHal.h"
+#include "test_support/StubLedHal.h"
 
 // ---------------------------------------------------------------------------
 // Global test instances (static avoids 960-byte Matrix on the stack)
