@@ -1,5 +1,7 @@
-#include "matrix.h"
-#include <cstdint>
+// SPDX-FileCopyrightText: 2026 Eugen Wiens
+// SPDX-License-Identifier: MIT
+
+#include "Matrix.h"
 
 Matrix::Matrix(ILedHal& ledHal, IAdcHal& adcHal) : m_ledHal{ledHal}, m_ldr{adcHal} {}
 

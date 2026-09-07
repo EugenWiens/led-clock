@@ -20,8 +20,8 @@
 
 | ID | Requirement | Category |
 |---|---|---|
-| NFA-01 | The firmware shall be written in C++ using the Arduino framework on ESP32-C6 | Technology |
-| NFA-02 | The LED driver shall use FastLED to ensure compatibility with the ESP32-C6 RMT peripheral | Technology |
+| NFA-01 | The firmware shall be written in C++ using ESP-IDF on ESP32-C6 | Technology |
+| NFA-02 | The LED driver shall use the ESP-IDF RMT component for ESP32-C6 compatibility | Technology |
 | NFA-03 | The firmware shall compile without errors or warnings under PlatformIO with the `espressif32` platform | Quality |
 | NFA-04 | No WiFi credentials or secrets shall be committed to version control; they reside only in `config.h` | Security |
 | NFA-05 | Brightness adjustment shall respond within 1 second of a significant ambient light change | Performance |
@@ -53,7 +53,7 @@
 | QA-12 | Unit tests shall run on the host (native) environment (`pio test -e native`) without requiring hardware | PlatformIO native env (free) | Must |
 | QA-13 | Each unit test module shall achieve a minimum line coverage of 80 %; coverage shall be measured with **gcov** and reported via **lcov** / **genhtml** | [gcov](https://gcc.gnu.org/onlinedocs/gcc/Gcov.html) + [lcov](https://github.com/linux-test-project/lcov) (GPLv2, free) | Should |
 | QA-14 | Tests shall be independent and deterministic — no shared mutable state between test cases | Unity | Must |
-| QA-15 | Hardware-dependent code (FastLED, WiFi, BLE) shall be abstracted behind interfaces so it can be replaced with **FFF** fake functions in the native test environment | [FFF](https://github.com/meekrosoft/fff) (MIT, free) | Must |
+| QA-15 | Hardware-dependent code (RMT, WiFi, BLE) shall be abstracted behind interfaces so it can be replaced with C++ stubs in the native test environment | C++ test doubles | Must |
 
 ### Code Review & Process
 

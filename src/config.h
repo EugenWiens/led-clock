@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Eugen Wiens
+// SPDX-License-Identifier: MIT
+
 #pragma once
 
 // ---------------------------------------------------------------------------

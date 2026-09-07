@@ -1,25 +1,16 @@
-#include "led_hal.h"
-#include "../config.h"
+// SPDX-FileCopyrightText: 2026 Eugen Wiens
+// SPDX-License-Identifier: MIT
 
-#include "driver/rmt_tx.h"
-#include "driver/rmt_encoder.h"
-#include "rom/ets_sys.h"       // ets_delay_us
+#include "EspLedStripHal.h"
+#include "config.h"
+
 #include "freertos/FreeRTOS.h" // portMAX_DELAY
-
-// ---------------------------------------------------------------------------
-// WS2812B timing at 10 MHz RMT clock (1 tick = 100 ns)
-// ---------------------------------------------------------------------------
-//  T0H = 400 ns → 4 ticks HIGH     T0L = 800 ns → 8 ticks LOW
-//  T1H = 800 ns → 8 ticks HIGH     T1L = 400 ns → 4 ticks LOW
-//  Reset: data line LOW for > 50 µs (handled by ets_delay_us after TX)
-// ---------------------------------------------------------------------------
-static constexpr uint32_t RMT_RESOLUTION_HZ = 10'000'000; // 10 MHz
+#include "rom/ets_sys.h"       // ets_delay_us
 
 void EspLedStripHal::init(CRGB* leds, uint16_t count) {
     m_leds = leds;
     m_count = count;
 
-    // --- RMT TX channel ---
     rmt_tx_channel_config_t tx_cfg{};
     tx_cfg.gpio_num = static_cast<gpio_num_t>(LED_DATA_PIN);
     tx_cfg.clk_src = RMT_CLK_SRC_DEFAULT;
@@ -28,9 +19,6 @@ void EspLedStripHal::init(CRGB* leds, uint16_t count) {
     tx_cfg.trans_queue_depth = 4;
     rmt_new_tx_channel(&tx_cfg, &m_txChan);
 
-    // --- Bytes encoder: WS2812B bit-level timing (10 MHz → 1 tick = 100 ns) ---
-    // bit0: HIGH 400 ns (4 ticks), LOW 800 ns (8 ticks)
-    // bit1: HIGH 800 ns (8 ticks), LOW 400 ns (4 ticks)
     rmt_bytes_encoder_config_t enc_cfg{};
     enc_cfg.bit0.duration0 = 4;
     enc_cfg.bit0.level0 = 1;
@@ -40,14 +28,13 @@ void EspLedStripHal::init(CRGB* leds, uint16_t count) {
     enc_cfg.bit1.level0 = 1;
     enc_cfg.bit1.duration1 = 4;
     enc_cfg.bit1.level1 = 0;
-    enc_cfg.flags.msb_first = 1; // WS2812B sends MSB first
+    enc_cfg.flags.msb_first = 1;
     rmt_new_bytes_encoder(&enc_cfg, &m_bytesEnc);
 
     rmt_enable(m_txChan);
 }
 
 void EspLedStripHal::show() {
-    // Build GRB buffer (WS2812B uses G-R-B byte order), scaled by brightness.
     static uint8_t s_grb[LED_COUNT * 3];
     for (uint16_t i = 0; i < m_count; ++i) {
         s_grb[i * 3 + 0] = static_cast<uint8_t>(m_leds[i].g * m_brightness / 255u);
@@ -57,12 +44,9 @@ void EspLedStripHal::show() {
 
     rmt_transmit_config_t tx_cfg{};
     tx_cfg.loop_count = 0;
-    tx_cfg.flags.eot_level = 0; // line stays LOW after TX → WS2812B reset
+    tx_cfg.flags.eot_level = 0;
     rmt_transmit(m_txChan, m_bytesEnc, s_grb, m_count * 3u, &tx_cfg);
     rmt_tx_wait_all_done(m_txChan, portMAX_DELAY);
-
-    // WS2812B reset: hold data line LOW for > 50 µs.
-    // After rmt_tx_wait_all_done() the line is already LOW (eot_level = 0).
     ets_delay_us(60);
 }
 

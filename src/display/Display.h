@@ -1,14 +1,15 @@
+// SPDX-FileCopyrightText: 2026 Eugen Wiens
+// SPDX-License-Identifier: MIT
+
 #pragma once
 
 #include <cstdint>
 
-#include "matrix.h"
-#include "renderer.h"
-
-class Ntp;
-class SwitchBot;
-
-enum class DisplayState { SHOW_CLOCK, SHOW_TEMP };
+#include "ble/SwitchBot.h"
+#include "network/Ntp.h"
+#include "Matrix.h"
+#include "Renderer.h"
+#include "DisplayState.h"
 
 class Display {
 public:

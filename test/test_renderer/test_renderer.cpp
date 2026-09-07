@@ -1,23 +1,14 @@
+// SPDX-FileCopyrightText: 2026 Eugen Wiens
+// SPDX-License-Identifier: MIT
+
 #include <unity.h>
 #include <limits>
-#include "../../src/display/renderer.h"
-#include "../../src/display/font.h"
 
-// ---------------------------------------------------------------------------
-// HAL stubs
-// ---------------------------------------------------------------------------
-class StubLedHal final : public ILedHal {
-public:
-    void init(CRGB*, uint16_t) override {}
-    void show() override {}
-    void setBrightness(uint8_t) override {}
-};
+#include "display/Renderer.h"
+#include "display/Font.h"
 
-class StubAdcHal final : public IAdcHal {
-public:
-    void init() override {}
-    int read() override { return 2048; }
-};
+#include "test_support/StubAdcHal.h"
+#include "test_support/StubLedHal.h"
 
 static StubLedHal g_ledHal;
 static StubAdcHal g_adcHal;
@@ -60,13 +51,13 @@ void tearDown() {}
 // ---------------------------------------------------------------------------
 void test_font_digit0_row0_matches_table() {
     g_renderer.renderClock(0, 0, false); // matrix 0 = '0'
-    TEST_ASSERT_EQUAL_HEX8(font::FONT[0][0], readGlyphRow(0, 0));
+    TEST_ASSERT_EQUAL_HEX8(Font::FONT[0][0], readGlyphRow(0, 0));
 }
 
 void test_font_digit8_all_rows_match_table() {
     g_renderer.renderClock(8, 8, false); // matrix 1 = '8'
-    for (uint8_t row = 0u; row < font::GLYPH_ROWS; ++row) {
-        TEST_ASSERT_EQUAL_HEX8(font::FONT[8][row], readGlyphRow(1, row));
+    for (uint8_t row = 0u; row < Font::GLYPH_ROWS; ++row) {
+        TEST_ASSERT_EQUAL_HEX8(Font::FONT[8][row], readGlyphRow(1, row));
     }
 }
 
@@ -75,22 +66,22 @@ void test_font_digit8_all_rows_match_table() {
 // ---------------------------------------------------------------------------
 void test_renderClock_hour_tens_on_matrix0() {
     g_renderer.renderClock(23, 0, false);
-    TEST_ASSERT_EQUAL_HEX8(font::FONT[2][0], readGlyphRow(0, 0)); // '2'
+    TEST_ASSERT_EQUAL_HEX8(Font::FONT[2][0], readGlyphRow(0, 0)); // '2'
 }
 
 void test_renderClock_hour_units_on_matrix1() {
     g_renderer.renderClock(23, 0, false);
-    TEST_ASSERT_EQUAL_HEX8(font::FONT[3][0], readGlyphRow(1, 0)); // '3'
+    TEST_ASSERT_EQUAL_HEX8(Font::FONT[3][0], readGlyphRow(1, 0)); // '3'
 }
 
 void test_renderClock_minute_tens_on_matrix3() {
     g_renderer.renderClock(0, 45, false);
-    TEST_ASSERT_EQUAL_HEX8(font::FONT[4][0], readGlyphRow(3, 0)); // '4'
+    TEST_ASSERT_EQUAL_HEX8(Font::FONT[4][0], readGlyphRow(3, 0)); // '4'
 }
 
 void test_renderClock_minute_units_on_matrix4() {
     g_renderer.renderClock(0, 45, false);
-    TEST_ASSERT_EQUAL_HEX8(font::FONT[5][0], readGlyphRow(4, 0)); // '5'
+    TEST_ASSERT_EQUAL_HEX8(Font::FONT[5][0], readGlyphRow(4, 0)); // '5'
 }
 
 // ---------------------------------------------------------------------------
@@ -99,7 +90,7 @@ void test_renderClock_minute_units_on_matrix4() {
 void test_renderClock_colon_on_renders_glyph() {
     g_renderer.renderClock(0, 0, true);
     // Row 1 of colon glyph (.XX..) should appear on matrix 2
-    TEST_ASSERT_EQUAL_HEX8(font::FONT[font::IDX_COLON][1], readGlyphRow(2, 1));
+    TEST_ASSERT_EQUAL_HEX8(Font::FONT[Font::IDX_COLON][1], readGlyphRow(2, 1));
 }
 
 void test_renderClock_colon_off_matrix2_is_blank() {
@@ -112,10 +103,10 @@ void test_renderClock_colon_off_matrix2_is_blank() {
 // ---------------------------------------------------------------------------
 void test_renderTemp_two_digit_integer_part() {
     g_renderer.renderTemp(23.5f);
-    TEST_ASSERT_EQUAL_HEX8(font::FONT[2][0], readGlyphRow(0, 0));                // '2'
-    TEST_ASSERT_EQUAL_HEX8(font::FONT[3][0], readGlyphRow(1, 0));                // '3'
-    TEST_ASSERT_EQUAL_HEX8(font::FONT[5][0], readGlyphRow(3, 0));                // '5'
-    TEST_ASSERT_EQUAL_HEX8(font::FONT[font::IDX_DEGREE][0], readGlyphRow(4, 0)); // '°'
+    TEST_ASSERT_EQUAL_HEX8(Font::FONT[2][0], readGlyphRow(0, 0));                // '2'
+    TEST_ASSERT_EQUAL_HEX8(Font::FONT[3][0], readGlyphRow(1, 0));                // '3'
+    TEST_ASSERT_EQUAL_HEX8(Font::FONT[5][0], readGlyphRow(3, 0));                // '5'
+    TEST_ASSERT_EQUAL_HEX8(Font::FONT[Font::IDX_DEGREE][0], readGlyphRow(4, 0)); // '°'
 }
 
 void test_renderTemp_decimal_dot_on_matrix2() {
@@ -131,7 +122,7 @@ void test_renderTemp_decimal_dot_on_matrix2() {
 void test_renderTemp_single_digit_matrix0_blank() {
     g_renderer.renderTemp(5.2f);
     TEST_ASSERT_TRUE(matrixBlank(0));
-    TEST_ASSERT_EQUAL_HEX8(font::FONT[5][0], readGlyphRow(1, 0)); // '5'
+    TEST_ASSERT_EQUAL_HEX8(Font::FONT[5][0], readGlyphRow(1, 0)); // '5'
 }
 
 // ---------------------------------------------------------------------------
@@ -140,9 +131,9 @@ void test_renderTemp_single_digit_matrix0_blank() {
 void test_renderTemp_negative_shows_dash_and_digit() {
     g_renderer.renderTemp(-3.7f);
     // Row 3 is the only non-zero row of the '-' glyph
-    TEST_ASSERT_EQUAL_HEX8(font::FONT[font::IDX_DASH][3], readGlyphRow(0, 3)); // '-'
-    TEST_ASSERT_EQUAL_HEX8(font::FONT[3][0], readGlyphRow(1, 0));              // '3'
-    TEST_ASSERT_EQUAL_HEX8(font::FONT[7][0], readGlyphRow(3, 0));              // '7'
+    TEST_ASSERT_EQUAL_HEX8(Font::FONT[Font::IDX_DASH][3], readGlyphRow(0, 3)); // '-'
+    TEST_ASSERT_EQUAL_HEX8(Font::FONT[3][0], readGlyphRow(1, 0));              // '3'
+    TEST_ASSERT_EQUAL_HEX8(Font::FONT[7][0], readGlyphRow(3, 0));              // '7'
 }
 
 // ---------------------------------------------------------------------------
@@ -150,15 +141,15 @@ void test_renderTemp_negative_shows_dash_and_digit() {
 // ---------------------------------------------------------------------------
 void test_renderTemp_nan_shows_fallback() {
     g_renderer.renderTemp(std::numeric_limits<float>::quiet_NaN());
-    TEST_ASSERT_EQUAL_HEX8(font::FONT[font::IDX_DASH][3], readGlyphRow(0, 3));   // '-'
-    TEST_ASSERT_EQUAL_HEX8(font::FONT[font::IDX_DASH][3], readGlyphRow(1, 3));   // '-'
-    TEST_ASSERT_EQUAL_HEX8(font::FONT[font::IDX_DASH][3], readGlyphRow(3, 3));   // '-'
-    TEST_ASSERT_EQUAL_HEX8(font::FONT[font::IDX_DEGREE][0], readGlyphRow(4, 0)); // '°'
+    TEST_ASSERT_EQUAL_HEX8(Font::FONT[Font::IDX_DASH][3], readGlyphRow(0, 3));   // '-'
+    TEST_ASSERT_EQUAL_HEX8(Font::FONT[Font::IDX_DASH][3], readGlyphRow(1, 3));   // '-'
+    TEST_ASSERT_EQUAL_HEX8(Font::FONT[Font::IDX_DASH][3], readGlyphRow(3, 3));   // '-'
+    TEST_ASSERT_EQUAL_HEX8(Font::FONT[Font::IDX_DEGREE][0], readGlyphRow(4, 0)); // '°'
 }
 
 void test_renderTemp_out_of_range_shows_fallback() {
     g_renderer.renderTemp(100.0f);
-    TEST_ASSERT_EQUAL_HEX8(font::FONT[font::IDX_DASH][3], readGlyphRow(0, 3));
+    TEST_ASSERT_EQUAL_HEX8(Font::FONT[Font::IDX_DASH][3], readGlyphRow(0, 3));
 }
 
 // ---------------------------------------------------------------------------

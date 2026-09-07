@@ -1,5 +1,12 @@
-#include "switchbot.h"
-#include "../config.h"
+// SPDX-FileCopyrightText: 2026 Eugen Wiens
+// SPDX-License-Identifier: MIT
+
+#include "SwitchBot.h"
+#include "config.h"
+
+#ifndef NATIVE_ENV
+#include "esp_timer.h"
+#endif
 
 #include <cstdio>
 #include <cstring>
@@ -8,7 +15,7 @@
 // Pure logic — compiled in all environments (device + native test)
 // ===========================================================================
 
-bool parseSwitchBotServiceData(const uint8_t* data, size_t len, SwitchBotData& out) {
+bool SwitchBot::parseServiceData(const uint8_t* data, size_t len, SwitchBotData& out) {
     if (data == nullptr || len < 6u) {
         return false;
     }
@@ -25,11 +32,11 @@ bool parseSwitchBotServiceData(const uint8_t* data, size_t len, SwitchBotData& o
     return true;
 }
 
-bool isSwitchBotStale(const SwitchBotData& d, uint64_t nowMs) {
-    if (!d.valid) {
+bool SwitchBot::isStale(const SwitchBotData& data, uint64_t nowMs) {
+    if (!data.valid) {
         return true;
     }
-    return (nowMs - d.lastSeenMs) >= static_cast<uint64_t>(SENSOR_STALE_MS);
+    return (nowMs - data.lastSeenMs) >= static_cast<uint64_t>(SENSOR_STALE_MS);
 }
 
 // ===========================================================================
@@ -37,17 +44,13 @@ bool isSwitchBotStale(const SwitchBotData& d, uint64_t nowMs) {
 // ===========================================================================
 #ifndef NATIVE_ENV
 
-#include "esp_timer.h"
-
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-namespace {
-
 /// Parse "aa:bb:cc:dd:ee:ff" into val[0..5] stored in reversed byte order
 /// (BLE address little-endian convention: val[0] = least-significant octet).
-static bool parseMacString(const char* str, uint8_t val[6]) {
+bool SwitchBot::parseMacString(const char* str, uint8_t val[6]) {
     unsigned int b[6];
     if (std::sscanf(str, "%x:%x:%x:%x:%x:%x", &b[5], &b[4], &b[3], &b[2], &b[1], &b[0]) != 6) {
         return false;
@@ -61,7 +64,7 @@ static bool parseMacString(const char* str, uint8_t val[6]) {
 /// Walk raw advertisement data looking for service-data AD type (0x16)
 /// with UUID 0xFD3D. Returns a pointer to the payload bytes (after UUID)
 /// and sets *payloadLen on success; returns nullptr on failure.
-static const uint8_t* findServiceData(const uint8_t* adData, size_t adLen, size_t* payloadLen) {
+const uint8_t* SwitchBot::findServiceData(const uint8_t* adData, size_t adLen, size_t* payloadLen) {
     const uint8_t* p = adData;
     const uint8_t* end = adData + adLen;
 
@@ -84,8 +87,6 @@ static const uint8_t* findServiceData(const uint8_t* adData, size_t adLen, size_
     }
     return nullptr;
 }
-
-} // namespace
 
 SwitchBot::SwitchBot(Bluetooth& bluetooth) : m_bluetooth{bluetooth} {}
 
@@ -115,7 +116,7 @@ void SwitchBot::handleAdvertisement(const BluetoothAdvertisement& advertisement)
 
     SwitchBotData parsed{};
     parsed.lastSeenMs = advertisement.timestampMs;
-    if (parseSwitchBotServiceData(payload, payloadLength, parsed)) {
+    if (parseServiceData(payload, payloadLength, parsed)) {
         portENTER_CRITICAL(&m_mux);
         m_data = parsed;
         portEXIT_CRITICAL(&m_mux);
@@ -129,7 +130,7 @@ bool SwitchBot::getData(SwitchBotData& out) {
 
     if (out.valid) {
         const uint64_t nowMs = static_cast<uint64_t>(esp_timer_get_time() / 1000);
-        if (isSwitchBotStale(out, nowMs)) {
+        if (isStale(out, nowMs)) {
             out.valid = false;
         }
     }

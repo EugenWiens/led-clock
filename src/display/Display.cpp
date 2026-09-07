@@ -1,7 +1,10 @@
-#include "display.h"
+// SPDX-FileCopyrightText: 2026 Eugen Wiens
+// SPDX-License-Identifier: MIT
 
-#include "../ble/switchbot.h"
-#include "../network/ntp.h"
+#include "Display.h"
+
+#include "ble/SwitchBot.h"
+#include "network/Ntp.h"
 
 #include <cmath>
 #include <ctime>

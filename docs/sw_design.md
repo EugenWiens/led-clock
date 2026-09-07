@@ -8,8 +8,8 @@ C++ interfaces, enabling host-side unit testing without a physical device.
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│                          main.cpp                                │
-│  creates and initializes all concrete components, runs the loop   │
+│                   Application.cpp / main.cpp                    │
+│  Application owns components; app_main starts the loop           │
 └───────┬──────────────┬──────────────┬───────────────┬───────────┘
    │              │              │               │
    ▼              ▼              ▼               ▼
@@ -41,22 +41,25 @@ User-specific settings (`WIFI_SSID`, `WIFI_PASS`, `SWITCHBOT_MAC`, `NTP_SERVER`,
 `platformio_user.ini`. A `#error` directive fires at compile time if any of these
 is missing in a device build (`NATIVE_ENV` suppresses the check for host tests).
 
-### `src/display/display.h/.cpp`
+### `src/display/Display.h/.cpp`
 `Display` is the application-facing display facade. It owns the `Matrix` and
 `Renderer`, and runs the display state machine. `Ntp` and `SwitchBot` are
 injected dependencies; `Display` reads their data but does not initialize or
 maintain them. `update()` refreshes the clock or temperature, applies automatic
 brightness, and sends the current frame to the LED strip.
 
-### `src/ble/bluetooth.h/.cpp`
+### `src/ble/Bluetooth.h/.cpp`
 `Bluetooth` owns the NimBLE passive scanner and emits raw advertisements through
 a callback. It has no knowledge of SwitchBot payloads or display behavior.
 
-### `src/ble/switchbot.h/.cpp`
+### `src/ble/SwitchBot.h/.cpp`
 `SwitchBot` registers with `Bluetooth`, filters the configured MAC address,
 parses UUID-0xFD3D service data, and exposes the latest thread-safe reading.
 
-### `src/hal/led_hal.h/.cpp`
+### `src/hal/CRGB.h`
+`CRGB` is the self-contained RGB pixel value used by the display buffer.
+
+### `src/hal/ILedHal.h`
 Abstract LED hardware interface.
 
 ```cpp
@@ -67,6 +70,7 @@ class ILedHal {
 };
 ```
 
+### `src/hal/EspLedStripHal.h/.cpp`
 `EspLedStripHal` (device-only, `#ifndef NATIVE_ENV`) implements `ILedHal` using
 the ESP-IDF `esp_driver_rmt` component — **no FastLED dependency**:
 - `init()` — configures an RMT TX channel at 10 MHz on `LED_DATA_PIN` and creates
@@ -75,10 +79,9 @@ the ESP-IDF `esp_driver_rmt` component — **no FastLED dependency**:
   waits for completion and holds the line LOW for 60 µs (WS2812B reset)
 - `setBrightness()` — stores scale factor applied per-pixel in `show()`
 
-`CRGB` is a plain self-contained struct defined directly in `led_hal.h` (no
-`#ifdef NATIVE_ENV` needed — no external library dependency).
+No native-build conditional is needed for `CRGB`; it has no external dependency.
 
-### `src/hal/adc_hal.h/.cpp`
+### `src/hal/IAdcHal.h`
 Abstract ADC hardware interface.
 
 ```cpp
@@ -88,11 +91,12 @@ class IAdcHal {
 };
 ```
 
+### `src/hal/EspAdcHal.h/.cpp`
 `EspAdcHal` (device-only) implements `IAdcHal` using the ESP-IDF
 `adc_oneshot` API on `ADC_UNIT_1` / `ADC_CHANNEL_2` (GPIO2), 12-bit,
 `ADC_ATTEN_DB_12` (0–3.1 V input range).
 
-### `src/display/ldr.h/.cpp`
+### `src/display/Ldr.h/.cpp`
 Reads the LDR photoresistor, computes an 8-sample rolling average, and maps
 the result linearly to a brightness value.
 
@@ -108,7 +112,7 @@ class Ldr {
 **Brightness mapping:** `BRIGHTNESS_MIN + avg * (BRIGHTNESS_MAX - BRIGHTNESS_MIN) / 4095`
 (linear, clamped).
 
-### `src/display/matrix.h/.cpp`
+### `src/display/Matrix.h/.cpp`
 Owns the LED pixel buffer and orchestrates the HAL + LDR. Accepts HAL
 dependencies via constructor injection (testable without hardware).
 
@@ -138,8 +142,8 @@ left-to-right (standard WS2812B module layout).
 `m_ledHal.setBrightness(m_ldr.brightness())` **only** when `update()` returns
 `true` (i.e. a new ADC sample was taken).
 
-### `src/display/font.h`
-Static `constexpr uint8_t font::FONT[13][7]` table (namespace `font`).
+### `src/display/Font.h`
+Static `constexpr uint8_t Font::FONT[13][7]` table in the `Font` class.
 - Indices 0–9 → digit glyphs `'0'`–`'9'`
 - Index 10 → colon `':'`
 - Index 11 → dash `'-'` (used in `"--.-"` fallback)
@@ -147,9 +151,9 @@ Static `constexpr uint8_t font::FONT[13][7]` table (namespace `font`).
 - Each entry is 7 bytes (one per row); bit 4 = leftmost pixel of the 5-wide glyph.
   Renderer applies `col_offset = 1` to centre the 5×7 glyph in the 8×8 cell.
 
-Named constants: `font::IDX_COLON`, `font::IDX_DASH`, `font::IDX_DEGREE`.
+Named constants: `Font::IDX_COLON`, `Font::IDX_DASH`, `Font::IDX_DEGREE`.
 
-### `src/display/renderer.h/.cpp`
+### `src/display/Renderer.h/.cpp`
 Renders content onto the matrix buffer via constructor-injected `Matrix&`.
 
 ```cpp
@@ -166,30 +170,31 @@ Temperature layout across 5 matrices:
   tens   units    dot   frac     °
 ```
 Matrix 0 is blank for single-digit temperatures. Colours:
-- `CLOCK_COLOR` = amber `{255, 120, 0}` (defined in `renderer.h`)
+- `CLOCK_COLOR` = amber `{255, 120, 0}` (defined in `Renderer.h`)
 - `TEMP_COLOR`  = cyan  `{0, 200, 255}`
 
-### `src/network/ntp.h/.cpp`
+### `src/network/Ntp.h/.cpp`
 - `Ntp::init()` — connects WiFi, configures SNTP via `esp_sntp_*`, sets timezone
   via `setenv("TZ", ...)` + `tzset()`, blocks until sync (max 30 s) or returns `false`
 - `Ntp::getTime(struct tm &t)` — fills `t` via `localtime_r()`; returns `false` if not synced
 - `Ntp::maintain()` — called from main loop; reconnects WiFi + re-syncs if lost
 
-### `src/main.cpp`
-ESP-IDF entry point `app_main()`. Creates all concrete components as `static`
-locals (BSS segment, not task stack) and controls their initialization order:
+### `src/Application.h/.cpp`
+The `Application` class owns all concrete
+components in static storage and controls their initialization order:
 
 ```cpp
-static EspLedStripHal s_ledHal;
-static EspAdcHal      s_adcHal;
-static Bluetooth      s_bluetooth;
-static SwitchBot      s_switchBot{s_bluetooth};
-static Ntp            s_ntp;
-static Display        s_display{s_ledHal, s_adcHal, s_ntp, s_switchBot};
+static Application application;
+application.run();
 ```
 
-Followed by a FreeRTOS loop (`vTaskDelay(pdMS_TO_TICKS(33))`). Timing uses
-`ms_now()` which wraps `esp_timer_get_time() / 1000`.
+`Application::run()` contains the FreeRTOS loop (`vTaskDelay(pdMS_TO_TICKS(33))`). Timing uses
+the private `Application::nowMs()` helper, which wraps
+`esp_timer_get_time() / 1000`.
+
+### `src/main.cpp`
+The ESP-IDF `app_main()` entry point creates one static `Application` object and
+delegates to `Application::run()`.
 
 ## Unit Tests
 
@@ -202,7 +207,9 @@ C++ stub classes implementing the same abstract interfaces — no macros require
 | `test_ldr` | `test/test_ldr/test_ldr.cpp` | Rolling average, linear brightness map, time gating, clamp |
 | `test_renderer` | `test/test_renderer/test_renderer.cpp` | Font glyph data, digit placement, colon on/off, temp formatting, NaN fallback |
 
-Stub pattern:
+Test doubles live in `test_support/StubLedHal.h` and
+`test_support/StubAdcHal.h`:
+
 ```cpp
 class StubLedHal final : public ILedHal {
     uint8_t brightness{128};
@@ -212,7 +219,7 @@ class StubLedHal final : public ILedHal {
 };
 ```
 
-Build filter for native env: `build_src_filter = -<*> +<display/matrix.cpp> +<display/ldr.cpp> +<display/renderer.cpp>`
+Build filter for native env: `build_src_filter = -<*> +<display/Matrix.cpp> +<display/Ldr.cpp> +<display/Renderer.cpp> +<ble/SwitchBot.cpp>`
 (HAL `.cpp` files are excluded; stub classes in the test file provide the implementations.)
 
 ## Display State Machine
@@ -243,20 +250,20 @@ Build filter for native env: `build_src_filter = -<*> +<display/matrix.cpp> +<di
 ## Data Flow
 
 ```
-[WiFi / NTP]  ──► struct tm (hh, mm, ss)  ──► renderClock()  ──► FastLED strip
-[SwitchBot BLE] ─► SwitchBotData.tempC    ──► renderTemp()   ──► FastLED strip
-[LDR ADC]     ──► rolling average         ──► FastLED.setBrightness()
+[WiFi / NTP]  ──► struct tm (hh, mm, ss)  ──► renderClock()  ──► RMT LED strip
+[SwitchBot BLE] ─► SwitchBotData.tempC    ──► renderTemp()   ──► RMT LED strip
+[LDR ADC]     ──► rolling average         ──► ILedHal::setBrightness()
 ```
 
 ## Timing
 
 | Task | Period | Mechanism |
 |---|---|---|
-| Display refresh | ~33 ms (30 FPS) | `FastLED.show()` + `vTaskDelay(pdMS_TO_TICKS(33))` |
-| Colon toggle | 1 s | `ms_now()` delta in main loop |
-| Clock→Temp switch | `CLOCK_DISPLAY_MS` (config) | `ms_now()` delta in main loop |
-| Temp→Clock switch | `TEMP_DISPLAY_MS` (default 5 s) | `ms_now()` delta in main loop |
-| LDR read | 500 ms | `Ldr::update()` throttled by `ms_now()` delta |
+| Display refresh | ~33 ms (30 FPS) | `ILedHal::show()` + `vTaskDelay(pdMS_TO_TICKS(33))` |
+| Colon toggle | 1 s | `Application::nowMs()` delta in main loop |
+| Clock→Temp switch | `CLOCK_DISPLAY_MS` (config) | `Application::nowMs()` delta in main loop |
+| Temp→Clock switch | `TEMP_DISPLAY_MS` (default 5 s) | `Application::nowMs()` delta in main loop |
+| LDR read | 500 ms | `Ldr::update()` throttled by `Application::nowMs()` delta |
 | BLE scan | continuous | ESP32 BLE stack background task |
 | NTP maintain | on WiFi reconnect | checked in main loop via `Ntp::maintain()` |
 
@@ -272,19 +279,19 @@ platform  = espressif32
 board     = esp32-c6-devkitm-1
 framework = espidf
 ; No lib_deps — LED strip driven via built-in esp_driver_rmt component
-build_flags = -std=gnu++2a -Wall -Wextra ${private_credentials.build_flags}
+build_flags = -std=gnu++2a -Wall -Wextra -Isrc -I. ${private_credentials.build_flags}
 
 [env:native]               ; host-side unit tests — pio test -e native
 platform = native
 targets  = test            ; prevents accidental pio run -e native
-build_flags = -std=c++2a -Wall -Wextra -DNATIVE_ENV
-build_src_filter = -<*> +<display/matrix.cpp> +<display/ldr.cpp> +<display/renderer.cpp>
+build_flags = -std=c++2a -Wall -Wextra -Werror -DNATIVE_ENV -Isrc -I.
+build_src_filter = -<*> +<display/Matrix.cpp> +<display/Ldr.cpp> +<display/Renderer.cpp> +<ble/SwitchBot.cpp>
 
 [env:native_coverage]      ; same as native but with gcov instrumentation — CI only
 platform = native
 targets  = test
-build_flags = -std=c++2a -Wall -Wextra -DNATIVE_ENV -fprofile-arcs -ftest-coverage -lgcov
-build_src_filter = -<*> +<display/matrix.cpp> +<display/ldr.cpp> +<display/renderer.cpp>
+build_flags = -std=c++2a -Wall -Wextra -Werror -DNATIVE_ENV -Isrc -I. -fprofile-arcs -ftest-coverage -lgcov
+build_src_filter = -<*> +<display/Matrix.cpp> +<display/Ldr.cpp> +<display/Renderer.cpp> +<ble/SwitchBot.cpp>
 ```
 
 ## CI / Quality Assurance

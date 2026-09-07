@@ -1,15 +1,18 @@
-#include "renderer.h"
-#include "font.h"
+// SPDX-FileCopyrightText: 2026 Eugen Wiens
+// SPDX-License-Identifier: MIT
+
+#include "Renderer.h"
+#include "Font.h"
+
 #include <cmath>
-#include <cstdint>
 
 Renderer::Renderer(Matrix& matrix) : m_matrix{matrix} {}
 
 void Renderer::renderGlyph(uint8_t matrixIdx, uint8_t fontIdx, CRGB color) {
     constexpr uint8_t COL_OFFSET = 1u; // centres 5-wide glyph in 8-wide cell
-    for (uint8_t row = 0u; row < font::GLYPH_ROWS; ++row) {
-        const uint8_t rowBits = font::FONT[fontIdx][row];
-        for (uint8_t c = 0u; c < font::GLYPH_COLS; ++c) {
+    for (uint8_t row = 0u; row < Font::GLYPH_ROWS; ++row) {
+        const uint8_t rowBits = Font::FONT[fontIdx][row];
+        for (uint8_t c = 0u; c < Font::GLYPH_COLS; ++c) {
             if ((rowBits >> (4u - c)) & 1u) {
                 m_matrix.setPixel(matrixIdx, c + COL_OFFSET, row, color);
             }
@@ -30,7 +33,7 @@ void Renderer::renderClock(uint8_t hh, uint8_t mm, bool colonOn) {
     renderGlyph(0u, static_cast<uint8_t>(hh / 10u), CLOCK_COLOR);
     renderGlyph(1u, static_cast<uint8_t>(hh % 10u), CLOCK_COLOR);
     if (colonOn) {
-        renderGlyph(2u, font::IDX_COLON, CLOCK_COLOR);
+        renderGlyph(2u, Font::IDX_COLON, CLOCK_COLOR);
     }
     renderGlyph(3u, static_cast<uint8_t>(mm / 10u), CLOCK_COLOR);
     renderGlyph(4u, static_cast<uint8_t>(mm % 10u), CLOCK_COLOR);
@@ -40,11 +43,11 @@ void Renderer::renderTemp(float tempC) {
     m_matrix.clear();
 
     if (std::isnan(tempC) || tempC < -9.9f || tempC > 99.9f) {
-        renderGlyph(0u, font::IDX_DASH, TEMP_COLOR);
-        renderGlyph(1u, font::IDX_DASH, TEMP_COLOR);
+        renderGlyph(0u, Font::IDX_DASH, TEMP_COLOR);
+        renderGlyph(1u, Font::IDX_DASH, TEMP_COLOR);
         renderDecimalDot(TEMP_COLOR);
-        renderGlyph(3u, font::IDX_DASH, TEMP_COLOR);
-        renderGlyph(4u, font::IDX_DEGREE, TEMP_COLOR);
+        renderGlyph(3u, Font::IDX_DASH, TEMP_COLOR);
+        renderGlyph(4u, Font::IDX_DEGREE, TEMP_COLOR);
         return;
     }
 
@@ -57,7 +60,7 @@ void Renderer::renderTemp(float tempC) {
     }
 
     if (negative) {
-        renderGlyph(0u, font::IDX_DASH, TEMP_COLOR);
+        renderGlyph(0u, Font::IDX_DASH, TEMP_COLOR);
         renderGlyph(1u, static_cast<uint8_t>(intPart % 10), TEMP_COLOR);
     } else if (intPart >= 10) {
         renderGlyph(0u, static_cast<uint8_t>(intPart / 10), TEMP_COLOR);
@@ -69,5 +72,5 @@ void Renderer::renderTemp(float tempC) {
 
     renderDecimalDot(TEMP_COLOR);
     renderGlyph(3u, static_cast<uint8_t>(fracPart), TEMP_COLOR);
-    renderGlyph(4u, font::IDX_DEGREE, TEMP_COLOR);
+    renderGlyph(4u, Font::IDX_DEGREE, TEMP_COLOR);
 }

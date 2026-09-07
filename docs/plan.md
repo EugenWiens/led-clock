@@ -1,3 +1,6 @@
+<!-- SPDX-FileCopyrightText: 2026 Eugen Wiens -->
+<!-- SPDX-License-Identifier: MIT -->
+
 # Plan: ESP32-C6 WS2812 LED Clock with SwitchBot
 
 ## Decisions
@@ -7,7 +10,7 @@
 - Time source: NTP via WiFi (configTzTime)
 - SwitchBot BLE MAC: fixed in config.h
 - SwitchBot connection: passive BLE scan, Manufacturer Data 0x0969 / service fd3d
-- LED library: FastLED (RMT5 support on ESP32-C6)
+- LED driver: ESP-IDF `esp_driver_rmt` component for WS2812B
 - LED data pin: GPIO8
 - Brightness: LDR photoresistor on GPIO2 (ADC1), analogRead + rolling average
 - LDR circuit: voltage divider LDR + 10kΩ pull-down to 3.3V
@@ -23,17 +26,27 @@ led_clock/
 ├── platformio.ini
 ├── src/
 │   ├── main.cpp
+│   ├── Application.h/.cpp       Application composition and main loop
 │   ├── config.h                  WiFi credentials, pins, timezone, SwitchBot MAC
 │   ├── display/
-│   │   ├── display.h/.cpp        Display facade, initialization, and state machine
-│   │   ├── matrix.h/.cpp         FastLED wrapper + coordinate mapping
-│   │   ├── font.h                5x7 bitmap data
-│   │   └── renderer.h/.cpp       Clock/temperature rendering
+│   │   ├── Display.h/.cpp        Display facade, initialization, and state machine
+│   │   ├── DisplayState.h        Display state enumeration
+│   │   ├── Matrix.h/.cpp         RMT HAL wrapper + coordinate mapping
+│   │   ├── Font.h                5x7 bitmap data
+│   │   └── Renderer.h/.cpp       Clock/temperature rendering
 │   ├── network/
-│   │   └── ntp.h/.cpp            WiFi + NTP sync
+│   │   └── Ntp.h/.cpp            WiFi + NTP sync
+│   ├── hal/
+│   │   ├── CRGB.h
+│   │   ├── ILedHal.h
+│   │   ├── EspLedStripHal.h/.cpp
+│   │   ├── IAdcHal.h
+│   │   └── EspAdcHal.h/.cpp
 │   └── ble/
-│       ├── bluetooth.h/.cpp       Generic passive BLE scanner
-│       └── switchbot.h/.cpp       SwitchBot filter, parser, and data store
+│       ├── Bluetooth.h/.cpp       Generic passive BLE scanner
+│       ├── BluetoothAdvertisement.h
+│       ├── SwitchBot.h/.cpp       SwitchBot filter and parser
+│       └── SwitchBotData.h
 ├── docs/
 │   ├── plan.md                   Project plan (this file)
 │   ├── circuit.md                ASCII circuit schematic
@@ -47,20 +60,20 @@ led_clock/
 
 ### Phase 1: PlatformIO Setup
 - [x] platformio.ini: board=esp32-c6-devkitm-1, framework=espidf, platform=espressif32
-- [x] Dependencies: FastLED
+- [x] Dependencies: ESP-IDF RMT driver
 - [x] Create project directory structure
 - [x] config.h with WiFi credentials, timezone, LED pin, LDR pin, SwitchBot MAC
 
 ### Phase 2: LED Matrix Driver + LDR (src/display/)
-- [x] FastLED: 320 LEDs (5x64), GPIO8
+- [x] WS2812B: 320 LEDs (5x64), GPIO8
 - [x] Coordinate mapping: (matrixIndex, col, row) → global LED index
 - [x] Core functions: clear(), setPixel(), show()
-- [x] LDR: adc_oneshot_read (GPIO2/ADC_CHANNEL_2) every 500ms, rolling average (8 samples), map to FastLED setBrightness(10–255)
-- [x] HAL wrapper (src/hal/led_hal, adc_hal) — FFF-mockable boundary for unit tests
+- [x] LDR: adc_oneshot_read (GPIO2/ADC_CHANNEL_2) every 500ms, rolling average (8 samples), map to LED brightness (10–255)
+- [x] HAL interfaces and ESP-IDF implementations — test-double boundary for unit tests
 - [x] Unit tests: test/test_display/test_matrix.cpp (14 test cases)
 
 ### Phase 3: Font & Renderer (src/display/)
-- [x] 5x7 bitmap font as `uint8_t FONT[13][7]` — digits 0–9, ':', '-', '°' (namespace `font`)
+- [x] 5x7 bitmap font as `Font::FONT[13][7]` — digits 0–9, ':', '-', '°'
 - [x] `Renderer(Matrix&)` class with constructor injection
 - [x] `renderGlyph(matrixIdx, fontIdx, color)` — col_offset=1, bits 4–0 per row
 - [x] `renderClock(hh, mm, colonOn)` — matrices 0,1 (hour), 2 (colon), 3,4 (minute)
@@ -75,13 +88,13 @@ led_clock/
 
 ### Phase 5: SwitchBot BLE (src/ble/) — parallel to Phase 4
 - [x] Enable NimBLE in `sdkconfig.esp32-c6-devkitm-1` (`CONFIG_BT_ENABLED`, `CONFIG_BT_NIMBLE_ENABLED`, `CONFIG_BT_NIMBLE_ROLE_OBSERVER`)
-- [x] `struct SwitchBotData { float tempC; uint8_t humidity; uint64_t lastSeenMs; bool valid; }`
-- [x] `parseSwitchBotServiceData(data, len, out)` — pure function, decodes UUID-0xFD3D service-data payload
-- [x] `isSwitchBotStale(data, nowMs)` — pure staleness check against `SENSOR_STALE_MS`
+- [x] `class SwitchBotData { float tempC; uint8_t humidity; uint64_t lastSeenMs; bool valid; }`
+- [x] `SwitchBot::parseServiceData(data, len, out)` — static class method decoding UUID-0xFD3D service data
+- [x] `SwitchBot::isStale(data, nowMs)` — static staleness check against `SENSOR_STALE_MS`
 - [x] Unit tests: `test/test_ble/test_switchbot.cpp` (15 test cases — length guards, temperature, humidity, staleness)
 - [x] `Bluetooth` — NimBLE passive scan via `nimble_port_freertos_init()` and raw advertisement callback
 - [x] `SwitchBot` — MAC filter, UUID-0xFD3D parser, thread-safe data store, and staleness check
-- [x] `Bluetooth`, `SwitchBot`, `Ntp`, and `Display` are constructed and initialized in `main.cpp`
+- [x] `Bluetooth`, `SwitchBot`, `Ntp`, and `Display` are constructed and initialized by `Application`
 - [ ] Verify byte offsets against physical SwitchBot Meter device (serial log `tempC` + `humidity`)
 
 ### Phase 6: Display Logic (src/display/)

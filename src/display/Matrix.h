@@ -1,9 +1,15 @@
+// SPDX-FileCopyrightText: 2026 Eugen Wiens
+// SPDX-License-Identifier: MIT
+
 #pragma once
+
 #include <cstdint>
-#include "../hal/led_hal.h" // provides CRGB + ILedHal
-#include "../hal/adc_hal.h" // provides IAdcHal
-#include "ldr.h"
-#include "../config.h"
+
+#include "config.h"
+#include "hal/CRGB.h"
+#include "hal/IAdcHal.h"
+#include "hal/ILedHal.h"
+#include "Ldr.h"
 
 class Matrix {
 public:
