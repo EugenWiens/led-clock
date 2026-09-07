@@ -67,9 +67,9 @@ led_clock/
 - [x] Unit tests: `test/test_renderer/test_renderer.cpp` (14 test cases)
 
 ### Phase 4: WiFi + NTP (src/network/)
-- [ ] configTzTime() with POSIX string (e.g. "CET-1CEST,M3.5.0,M10.5.0/3")
-- [ ] getLocalTime() poll loop until sync
-- [ ] WiFi reconnect on connection loss
+- [x] configTzTime() with POSIX string (e.g. "CET-1CEST,M3.5.0,M10.5.0/3")
+- [x] getLocalTime() poll loop until sync
+- [x] WiFi reconnect on connection loss
 
 ### Phase 5: SwitchBot BLE (src/ble/) — parallel to Phase 4
 - [x] Enable NimBLE in `sdkconfig.esp32-c6-devkitm-1` (`CONFIG_BT_ENABLED`, `CONFIG_BT_NIMBLE_ENABLED`, `CONFIG_BT_NIMBLE_ROLE_OBSERVER`)

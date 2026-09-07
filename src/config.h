@@ -17,6 +17,12 @@
 // ---------------------------------------------------------------------------
 // NTP / Timezone — must be set in [private_credentials] in platformio_user.ini
 // ---------------------------------------------------------------------------
+#define WIFI_CONNECT_TIMEOUT_MS 30000UL
+#define WIFI_RECONNECT_INTERVAL_MS 1000UL
+#define NTP_SYNC_TIMEOUT_MS 30000UL
+#define NTP_RETRY_INTERVAL_MS 5000UL
+#define NTP_POLL_INTERVAL_MS 100UL
+
 #if !defined(NTP_SERVER) && !defined(NATIVE_ENV)
 #error                                                                                             \
     "NTP_SERVER not set — add '-DNTP_SERVER=\"pool.ntp.org\"' to [private_credentials] in platformio_user.ini"

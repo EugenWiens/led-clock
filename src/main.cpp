@@ -2,7 +2,7 @@
 #include "display/renderer.h"
 #include "hal/led_hal.h"
 #include "hal/adc_hal.h"
-// #include "network/ntp.h"         // Phase 4
+#include "network/ntp.h"
 #include "ble/switchbot.h" // Phase 5
 
 #include "esp_timer.h"
@@ -32,11 +32,13 @@ static uint64_t s_lastColonToggle{0};
 extern "C" void app_main() {
     s_matrix.init();
     switchbotBegin(); // Phase 5: start passive BLE scan
+    (void)ntpBegin();
     s_stateEnteredAt = ms_now();
     s_lastColonToggle = ms_now();
 
     for (;;) {
         const uint64_t now = ms_now();
+        ntpMaintain();
         s_matrix.updateBrightness(now);
         s_matrix.show();
         vTaskDelay(pdMS_TO_TICKS(33)); // ~30 FPS
