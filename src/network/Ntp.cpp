@@ -54,11 +54,7 @@ void Ntp::wifiEventHandler(void* argument, esp_event_base_t eventBase, int32_t e
     }
 }
 
-bool Ntp::initWifi() {
-    if (m_wifiInitialized) {
-        return true;
-    }
-
+bool Ntp::initNvs() {
     esp_err_t result = nvs_flash_init();
     if (result == ESP_ERR_NVS_NO_FREE_PAGES || result == ESP_ERR_NVS_NEW_VERSION_FOUND) {
         result = nvs_flash_erase();
@@ -70,8 +66,11 @@ bool Ntp::initWifi() {
         ESP_LOGE(TAG, "NVS init failed: %s", esp_err_to_name(result));
         return false;
     }
+    return true;
+}
 
-    result = esp_netif_init();
+bool Ntp::initNetwork() {
+    esp_err_t result = esp_netif_init();
     if (result != ESP_OK && result != ESP_ERR_INVALID_STATE) {
         ESP_LOGE(TAG, "Network interface init failed: %s", esp_err_to_name(result));
         return false;
@@ -87,16 +86,22 @@ bool Ntp::initWifi() {
         ESP_LOGE(TAG, "Could not create WiFi station interface");
         return false;
     }
+    return true;
+}
 
+bool Ntp::initWifiDriver() {
     wifi_init_config_t wifiInitConfig = WIFI_INIT_CONFIG_DEFAULT();
-    result = esp_wifi_init(&wifiInitConfig);
+    const esp_err_t result = esp_wifi_init(&wifiInitConfig);
     if (result != ESP_OK) {
         ESP_LOGE(TAG, "WiFi init failed: %s", esp_err_to_name(result));
         return false;
     }
+    return true;
+}
 
-    result = esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_STA_DISCONNECTED,
-                                        &Ntp::wifiEventHandler, this);
+bool Ntp::registerWifiEventHandlers() {
+    esp_err_t result = esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_STA_DISCONNECTED,
+                                                  &Ntp::wifiEventHandler, this);
     if (result != ESP_OK) {
         ESP_LOGE(TAG, "Could not register WiFi event handler: %s", esp_err_to_name(result));
         return false;
@@ -108,7 +113,10 @@ bool Ntp::initWifi() {
         ESP_LOGE(TAG, "Could not register IP event handler: %s", esp_err_to_name(result));
         return false;
     }
+    return true;
+}
 
+bool Ntp::configureWifi() {
     wifi_config_t wifiConfig{};
     if (!copyWifiValue(wifiConfig.sta.ssid, sizeof(wifiConfig.sta.ssid), WIFI_SSID) ||
         !copyWifiValue(wifiConfig.sta.password, sizeof(wifiConfig.sta.password), WIFI_PASS)) {
@@ -116,7 +124,7 @@ bool Ntp::initWifi() {
         return false;
     }
 
-    result = esp_wifi_set_mode(WIFI_MODE_STA);
+    esp_err_t result = esp_wifi_set_mode(WIFI_MODE_STA);
     if (result == ESP_OK) {
         result = esp_wifi_set_config(WIFI_IF_STA, &wifiConfig);
     }
@@ -124,8 +132,20 @@ bool Ntp::initWifi() {
         ESP_LOGE(TAG, "WiFi configuration failed: %s", esp_err_to_name(result));
         return false;
     }
+    return true;
+}
 
-    result = esp_wifi_start();
+bool Ntp::initWifi() {
+    if (m_wifiInitialized) {
+        return true;
+    }
+
+    if (!initNvs() || !initNetwork() || !initWifiDriver() || !registerWifiEventHandlers() ||
+        !configureWifi()) {
+        return false;
+    }
+
+    const esp_err_t result = esp_wifi_start();
     if (result != ESP_OK) {
         ESP_LOGE(TAG, "WiFi start failed: %s", esp_err_to_name(result));
         return false;

@@ -29,6 +29,11 @@ private:
     static bool copyWifiValue(uint8_t* destination, size_t capacity, const char* source);
     static bool readSystemTime(struct tm& timeInfo);
 
+    bool initNvs();
+    bool initNetwork();
+    bool initWifiDriver();
+    bool registerWifiEventHandlers();
+    bool configureWifi();
     bool initWifi();
     void requestWifiConnection(uint64_t currentMs);
     bool configTzTime();
