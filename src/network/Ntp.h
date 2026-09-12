@@ -7,15 +7,17 @@
 #include <cstdint>
 #include <ctime>
 
+#include "display/ITimeSource.h"
+
 #ifndef NATIVE_ENV
 
 #include "esp_event.h"
 #endif
 
-class Ntp {
+class Ntp : public ITimeSource {
 public:
     [[nodiscard]] bool init();
-    [[nodiscard]] bool getTime(struct tm& timeInfo);
+    [[nodiscard]] bool getTime(struct tm& timeInfo) override;
     void maintain();
 
 private:

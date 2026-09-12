@@ -8,6 +8,7 @@
 
 #include "Bluetooth.h"
 #include "SwitchBotData.h"
+#include "display/ISensorSource.h"
 
 #ifndef NATIVE_ENV
 
@@ -21,7 +22,7 @@
 ///   [4] bits[6:0] = temp integer (0–99), bit[7] = 1 if positive
 ///   [5] bits[6:0] = humidity %
 /// @return true if @p len >= 6 and data was decoded successfully.
-class SwitchBot {
+class SwitchBot : public ISensorSource {
 public:
     explicit SwitchBot(Bluetooth& bluetooth);
 
@@ -36,7 +37,7 @@ public:
 
     /// Thread-safe read of the latest decoded SwitchBot data.
     /// Sets out.valid = false if no data has ever arrived or if the data is stale.
-    [[nodiscard]] bool getData(SwitchBotData& out);
+    [[nodiscard]] bool getData(SwitchBotData& out) override;
 
 private:
     static void advertisementHandler(const BluetoothAdvertisement& advertisement, void* context);

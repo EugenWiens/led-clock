@@ -98,6 +98,14 @@ void test_renderClock_colon_off_matrix2_is_blank() {
     TEST_ASSERT_TRUE(matrixBlank(2));
 }
 
+void test_renderClock_clears_pixels_from_previous_frame() {
+    g_renderer.renderClock(88, 88, true);
+    g_renderer.renderClock(11, 11, false);
+
+    TEST_ASSERT_TRUE(matrixBlank(2));
+    TEST_ASSERT_EQUAL_HEX8(Font::FONT[1][0], readGlyphRow(0, 0));
+}
+
 // ---------------------------------------------------------------------------
 // renderTemp — normal two-digit
 // ---------------------------------------------------------------------------
@@ -152,6 +160,20 @@ void test_renderTemp_out_of_range_shows_fallback() {
     TEST_ASSERT_EQUAL_HEX8(Font::FONT[Font::IDX_DASH][3], readGlyphRow(0, 3));
 }
 
+void test_renderTemp_lower_boundary_is_valid() {
+    g_renderer.renderTemp(-9.9f);
+    TEST_ASSERT_EQUAL_HEX8(Font::FONT[Font::IDX_DASH][3], readGlyphRow(0, 3));
+    TEST_ASSERT_EQUAL_HEX8(Font::FONT[9][0], readGlyphRow(1, 0));
+    TEST_ASSERT_EQUAL_HEX8(Font::FONT[9][0], readGlyphRow(3, 0));
+}
+
+void test_renderTemp_upper_boundary_is_valid() {
+    g_renderer.renderTemp(99.9f);
+    TEST_ASSERT_EQUAL_HEX8(Font::FONT[9][0], readGlyphRow(0, 0));
+    TEST_ASSERT_EQUAL_HEX8(Font::FONT[9][0], readGlyphRow(1, 0));
+    TEST_ASSERT_EQUAL_HEX8(Font::FONT[9][0], readGlyphRow(3, 0));
+}
+
 // ---------------------------------------------------------------------------
 // Test runner
 // ---------------------------------------------------------------------------
@@ -165,11 +187,14 @@ int main() {
     RUN_TEST(test_renderClock_minute_units_on_matrix4);
     RUN_TEST(test_renderClock_colon_on_renders_glyph);
     RUN_TEST(test_renderClock_colon_off_matrix2_is_blank);
+    RUN_TEST(test_renderClock_clears_pixels_from_previous_frame);
     RUN_TEST(test_renderTemp_two_digit_integer_part);
     RUN_TEST(test_renderTemp_decimal_dot_on_matrix2);
     RUN_TEST(test_renderTemp_single_digit_matrix0_blank);
     RUN_TEST(test_renderTemp_negative_shows_dash_and_digit);
     RUN_TEST(test_renderTemp_nan_shows_fallback);
     RUN_TEST(test_renderTemp_out_of_range_shows_fallback);
+    RUN_TEST(test_renderTemp_lower_boundary_is_valid);
+    RUN_TEST(test_renderTemp_upper_boundary_is_valid);
     return UNITY_END();
 }

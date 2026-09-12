@@ -54,6 +54,22 @@ void test_parse_exact_minimum_length_succeeds() {
     TEST_ASSERT_TRUE(SwitchBot::parseServiceData(buf, 6u, out));
 }
 
+void test_parse_invalid_values_returns_false_without_modifying_output() {
+    uint8_t buf[6]{};
+    makePayload(buf, 10u, 100u, true, 101u);
+    SwitchBotData out{};
+    out.tempC = 12.3f;
+    out.humidity = 44u;
+    out.lastSeenMs = 1234u;
+    out.valid = true;
+
+    TEST_ASSERT_FALSE(SwitchBot::parseServiceData(buf, 6u, out));
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 12.3f, out.tempC);
+    TEST_ASSERT_EQUAL_UINT8(44u, out.humidity);
+    TEST_ASSERT_EQUAL_UINT32(1234u, out.lastSeenMs);
+    TEST_ASSERT_TRUE(out.valid);
+}
+
 // ---------------------------------------------------------------------------
 // SwitchBot::parseServiceData — temperature decoding
 // ---------------------------------------------------------------------------
@@ -167,6 +183,7 @@ int main(int /*argc*/, char** /*argv*/) {
     RUN_TEST(test_parse_empty_returns_false);
     RUN_TEST(test_parse_too_short_returns_false);
     RUN_TEST(test_parse_exact_minimum_length_succeeds);
+    RUN_TEST(test_parse_invalid_values_returns_false_without_modifying_output);
 
     // Temperature
     RUN_TEST(test_parse_positive_temperature);

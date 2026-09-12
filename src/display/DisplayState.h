@@ -3,4 +3,6 @@
 
 #pragma once
 
-enum class DisplayState { SHOW_CLOCK, SHOW_TEMP };
+#include <cstdint>
+
+enum class DisplayState : uint8_t { SHOW_CLOCK, SHOW_TEMP };

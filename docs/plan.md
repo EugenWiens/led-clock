@@ -56,6 +56,73 @@ led_clock/
     └── housing_description.md    FreeCAD dimensions sheet
 ```
 
+## Unit Test Plan (native, hardware-free)
+
+### Goal and test boundary
+
+- Run all unit tests with Unity through `pio test -e native`.
+- Test pure logic and module behavior on the host; do not require an ESP32, LEDs, WiFi, BLE radio, or an ADC.
+- Keep RMT, WiFi, and NimBLE calls outside native unit tests. Verify those integrations separately on the target hardware.
+- Use `StubLedHal` and `StubAdcHal` for display and brightness tests. Add small fakes for time and sensor sources where needed.
+
+### Test suites and cases
+
+#### Matrix and LDR (`test/test_display/` and `test/test_ldr/`)
+
+- Verify matrix coordinate mapping for all edges and all five matrix indices.
+- Verify out-of-range coordinates are ignored without corrupting neighboring LEDs.
+- Verify `clear()` resets the complete 320 LED buffer.
+- Verify brightness sampling is time-gated and happens at the exact sample interval.
+- Verify minimum, midpoint, and maximum ADC values map to the configured brightness range.
+- Verify the rolling average converges, evicts the oldest sample, and does not exceed the configured limits.
+
+#### Renderer (`test/test_renderer/`)
+
+- Verify digit, colon, dash, and degree glyph placement on the intended matrix.
+- Verify clock digit placement for representative hours and minutes.
+- Verify colon on/off behavior and color selection.
+- Verify temperature rendering for positive, zero, negative, single-digit, and boundary values.
+- Verify NaN and out-of-range temperatures render the fallback `--.-` display.
+- Add a regression test that rendering a new value clears pixels left by the previous value.
+
+#### SwitchBot parser (`test/test_ble/`)
+
+- Verify null, empty, short, and minimum-length payload handling.
+- Verify positive, negative, zero, and boundary temperature values.
+- Verify humidity decoding and the `valid` flag.
+- Verify fresh data, the exact stale threshold, old data, and invalid data.
+- Verify malformed or unsupported payload data does not produce a valid reading.
+
+#### Display state machine (`test/test_display_state/`)
+
+- Verify initialization starts in `SHOW_CLOCK` with the colon enabled.
+- Verify the clock-to-temperature transition just before and exactly at `CLOCK_DISPLAY_MS`.
+- Verify the temperature-to-clock transition just before and exactly at `TEMP_DISPLAY_MS`.
+- Verify the colon toggles at `COLON_TOGGLE_MS` and remains stable before the boundary.
+- Verify a valid NTP time is rendered in clock mode.
+- Verify valid sensor data is rendered in temperature mode and unavailable data renders the fallback.
+- Verify repeated `update()` calls at the same timestamp are deterministic.
+
+The state-machine tests require `Display` to receive fakeable time and sensor sources, or for the timing logic to be extracted into a small pure-logic class. Add `Display.cpp` and the required test seam to the native source filter only after that boundary exists.
+
+### Implementation order
+
+1. Keep the existing Matrix, LDR, Renderer, and SwitchBot tests green as the baseline.
+2. Add the renderer regression and malformed-payload boundary cases.
+3. Introduce the smallest fakeable boundary for NTP and SwitchBot access in `Display`.
+4. Add the display state-machine suite with exact-boundary timing tests.
+5. Run native tests with warnings treated as errors and fix any nondeterministic shared state.
+6. Run the coverage configuration and raise every test module to at least 80% line coverage.
+7. Run the complete native test and coverage commands in CI for every pull request.
+
+### Definition of done
+
+- `pio test -e native` passes without hardware.
+- Each test is independent, deterministic, and uses controlled timestamps and input data.
+- All pure-logic behavior required by QA-11 has a corresponding test.
+- The native test build does not include ESP-IDF-only implementation files.
+- `pio test -e native_coverage` produces coverage data and every test module reaches at least 80% line coverage.
+
 ## Phases
 
 ### Phase 1: PlatformIO Setup
