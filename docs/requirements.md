@@ -9,11 +9,11 @@
 | FA-03 | The system shall automatically reconnect to WiFi and re-sync NTP after connection loss | Must |
 | FA-04 | The display shall alternate between time and temperature at a configurable interval | Must |
 | FA-05 | The system shall receive temperature and humidity data from a SwitchBot Meter via passive BLE scan | Must |
-| FA-06 | The SwitchBot device to read from shall be identified by its BLE MAC address, configured in `config.h` | Must |
+| FA-06 | The SwitchBot device to read from shall be identified by its BLE MAC address, supplied through the gitignored `platformio_user.ini` | Must |
 | FA-07 | When BLE sensor data is older than a configurable threshold (default 5 minutes), the display shall show `--.-°C` as a fallback | Must |
 | FA-08 | The LED brightness shall be adjusted automatically based on ambient light measured by an LDR | Must |
 | FA-09 | Brightness adaptation shall use a rolling average of LDR readings to avoid flickering | Should |
-| FA-10 | All user-configurable parameters (WiFi, timezone, pins, intervals, MAC) shall be centralised in `config.h` | Must |
+| FA-10 | User-configurable network and device identity parameters (WiFi, NTP server, timezone, MAC) shall be supplied through gitignored `platformio_user.ini`; hardware pins and timing intervals shall be centralised in `config.h` | Must |
 | FA-11 | The system shall be buildable and flashable using PlatformIO CLI (`pio run --target upload`) | Must |
 
 ## Non-Functional Requirements
@@ -23,7 +23,7 @@
 | NFA-01 | The firmware shall be written in C++ using ESP-IDF on ESP32-C6 | Technology |
 | NFA-02 | The LED driver shall use the ESP-IDF RMT component for ESP32-C6 compatibility | Technology |
 | NFA-03 | The firmware shall compile without errors or warnings under PlatformIO with the `espressif32` platform | Quality |
-| NFA-04 | No WiFi credentials or secrets shall be committed to version control; they reside only in `config.h` | Security |
+| NFA-04 | No WiFi credentials or secrets shall be committed to version control; they reside only in the gitignored `platformio_user.ini` | Security |
 | NFA-05 | Brightness adjustment shall respond within 1 second of a significant ambient light change | Performance |
 | NFA-06 | The BLE scan shall run continuously in the background without blocking the display refresh loop | Performance |
 | NFA-07 | The NTP sync shall complete within 30 seconds of a successful WiFi connection | Performance |
