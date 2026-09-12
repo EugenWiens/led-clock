@@ -22,12 +22,19 @@ bool SwitchBot::parseServiceData(const uint8_t* data, size_t len, SwitchBotData&
 
     // Byte [3]: lower nibble = temperature tenths (0–9)
     // Byte [4]: bits[6:0] = temperature integer (0–99), bit[7] = sign (1 = positive)
-    const auto tenths = static_cast<float>(data[3] & 0x0Fu) / 10.0f;
-    const auto integral = static_cast<float>(data[4] & 0x7Fu);
+    const uint8_t tenthsValue = data[3] & 0x0Fu;
+    const uint8_t integralValue = data[4] & 0x7Fu;
+    const uint8_t humidityValue = data[5] & 0x7Fu;
+    if (tenthsValue > 9u || integralValue > 99u || humidityValue > 100u) {
+        return false;
+    }
+
+    const auto tenths = static_cast<float>(tenthsValue) / 10.0f;
+    const auto integral = static_cast<float>(integralValue);
     const float sign = (data[4] & 0x80u) ? 1.0f : -1.0f;
 
     out.tempC = sign * (integral + tenths);
-    out.humidity = static_cast<uint8_t>(data[5] & 0x7Fu);
+    out.humidity = humidityValue;
     out.valid = true;
     return true;
 }

@@ -5,15 +5,16 @@
 
 #include <cstdint>
 
-#include "ble/SwitchBot.h"
-#include "network/Ntp.h"
+#include "ISensorSource.h"
+#include "ITimeSource.h"
 #include "Matrix.h"
 #include "Renderer.h"
 #include "DisplayState.h"
 
 class Display {
 public:
-    Display(ILedHal& ledHal, IAdcHal& adcHal, Ntp& ntp, SwitchBot& switchBot);
+    Display(ILedHal& ledHal, IAdcHal& adcHal, ITimeSource& timeSource,
+            ISensorSource& sensorSource);
 
     void init(uint64_t nowMs);
     void update(uint64_t nowMs);
@@ -21,8 +22,8 @@ public:
 private:
     Matrix m_matrix;
     Renderer m_renderer;
-    Ntp& m_ntp;
-    SwitchBot& m_switchBot;
+    ITimeSource& m_timeSource;
+    ISensorSource& m_sensorSource;
     DisplayState m_state{DisplayState::SHOW_CLOCK};
     uint64_t m_stateEnteredAt{0};
     uint64_t m_lastColonToggle{0};
