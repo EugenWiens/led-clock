@@ -13,8 +13,7 @@
 
 class Display {
 public:
-    Display(ILedHal& ledHal, IAdcHal& adcHal, ITimeSource& timeSource,
-            ISensorSource& sensorSource);
+    Display(ILedHal& ledHal, IAdcHal& adcHal, ITimeSource& timeSource, ISensorSource& sensorSource);
 
     void init(uint64_t nowMs);
     void update(uint64_t nowMs);

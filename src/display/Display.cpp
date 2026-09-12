@@ -7,11 +7,9 @@
 #include <ctime>
 
 Display::Display(ILedHal& ledHal, IAdcHal& adcHal, ITimeSource& timeSource,
-                                 ISensorSource& sensorSource)
-        : m_matrix{ledHal, adcHal},
-            m_renderer{m_matrix},
-            m_timeSource{timeSource},
-            m_sensorSource{sensorSource} {}
+                 ISensorSource& sensorSource)
+    : m_matrix{ledHal, adcHal}, m_renderer{m_matrix}, m_timeSource{timeSource},
+      m_sensorSource{sensorSource} {}
 
 void Display::init(uint64_t nowMs) {
     m_matrix.init();
