@@ -40,7 +40,7 @@ A self-contained LED matrix wall clock (ESP32-C6, 5×8×8 WS2812B, 320 LEDs) tha
 - Are there dependencies on incomplete phases that block this change?
 
 ### Security & Secrets (NFA-04)
-- No WiFi credentials, BLE MACs, or secrets committed — they must stay in `config.h` (gitignored via `platformio_user.ini`)
+- No WiFi credentials, BLE MACs, or secrets committed — they must stay in the gitignored `platformio_user.ini`
 
 ### Quality Gates (QA requirements)
 - Does the change include or require unit tests? (QA-10 to QA-15)

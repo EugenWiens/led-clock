@@ -55,7 +55,7 @@ led_clock/
 ├── src/
 │   ├── main.cpp            ESP-IDF entry point
 │   ├── Application.h/.cpp  Application composition and main loop
-│   ├── config.h            All user-configurable settings
+│   ├── config.h            Hardware, timing, and display constants
 │   ├── display/
 │   │   ├── Display.h/.cpp  Display facade and state machine
 │   │   ├── DisplayState.h  Display state enumeration
@@ -87,15 +87,20 @@ led_clock/
 
 ### 1. Configure
 
-Copy and edit `src/config.h` — fill in your WiFi credentials, timezone, and
-SwitchBot BLE MAC address:
+Create or edit `platformio_user.ini` in the project root. This gitignored file
+provides the device-specific values as PlatformIO build flags:
 
-```cpp
-#define WIFI_SSID        "your-ssid"
-#define WIFI_PASS        "your-password"
-#define TIMEZONE         "CET-1CEST,M3.5.0,M10.5.0/3"   // Germany
-#define SWITCHBOT_MAC    "AA:BB:CC:DD:EE:FF"
+```ini
+[private_credentials]
+build_flags =
+    '-DWIFI_SSID="your-ssid"'
+    '-DWIFI_PASS="your-password"'
+    '-DNTP_SERVER="pool.ntp.org"'
+    '-DTIMEZONE="CET-1CEST,M3.5.0,M10.5.0/3"'
+    '-DSWITCHBOT_MAC="AA:BB:CC:DD:EE:FF"'
 ```
+
+Do not commit this file or put private values in `src/config.h`.
 
 ### 2. Build & Upload
 
@@ -120,12 +125,15 @@ On first boot the device will:
 2. Start a passive BLE scan for the configured SwitchBot Meter
 3. Display `HH:MM` — automatically switching to temperature every 5 seconds
 
-## Configuration Reference (`src/config.h`)
+## Configuration Reference
+
+WiFi, NTP, timezone, and SwitchBot settings are supplied through
+`platformio_user.ini`. Hardware and timing constants remain in `src/config.h`.
 
 | Constant | Default | Description |
 |---|---|---|
 | `WIFI_SSID` | — | WiFi network name |
-| `WIFI_PASSWORD` | — | WiFi password |
+| `WIFI_PASS` | — | WiFi password |
 | `NTP_SERVER` | `"pool.ntp.org"` | NTP server hostname |
 | `TIMEZONE` | `"CET-1CEST,M3.5.0,M10.5.0/3"` | POSIX timezone string |
 | `LED_DATA_PIN` | `8` | GPIO pin for WS2812B data |

@@ -27,7 +27,7 @@ led_clock/
 ├── src/
 │   ├── main.cpp
 │   ├── Application.h/.cpp       Application composition and main loop
-│   ├── config.h                  WiFi credentials, pins, timezone, SwitchBot MAC
+│   ├── config.h                  Hardware pins, timing, and display constants
 │   ├── display/
 │   │   ├── Display.h/.cpp        Display facade, initialization, and state machine
 │   │   ├── DisplayState.h        Display state enumeration
@@ -129,7 +129,8 @@ The state-machine tests require `Display` to receive fakeable time and sensor so
 - [x] platformio.ini: board=esp32-c6-devkitm-1, framework=espidf, platform=espressif32
 - [x] Dependencies: ESP-IDF RMT driver
 - [x] Create project directory structure
-- [x] config.h with WiFi credentials, timezone, LED pin, LDR pin, SwitchBot MAC
+- [x] config.h with hardware pins, timing, and display constants
+- [x] Local platformio_user.ini build flags for WiFi, timezone, NTP, and SwitchBot MAC
 
 ### Phase 2: LED Matrix Driver + LDR (src/display/)
 - [x] WS2812B: 320 LEDs (5x64), GPIO8
